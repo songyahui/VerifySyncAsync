@@ -30,12 +30,12 @@ let id = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 rule token = parse
 | white    { token lexbuf }
 | newline  { next_line lexbuf; token lexbuf }
-| "nothing" { NOTHING }
-| "pause" {PAUSE}  
+| "halt" { NOTHING }
+| "yield" {PAUSE}  
 | "loop" {LOOP}
 | "signal" {SIGNAL}
 | "emit" {EMIT}
-| "present" {PRESENT}
+| "if" {PRESENT}
 | "run" {RUN}
 | "trap" {TRAP}
 | "exit" {EXIT}
@@ -43,14 +43,24 @@ rule token = parse
 | "require" {REQUIRE}
 | "ensure" {ENSURE}
 | "module" {MODULE}
+| "hiphop" {HIPHOP}
 | "input" {INPUT}
 | "output" {OUTPUT}
 | "end" {END}
 | "in" {IN}
 | "then" {THEN}
 | "else" {ELSE}
-| "abort" {ABORT} 
-| "when" {WHEN}
+| "TRUE" { TRUE }
+| "FALSE" { FALSE }
+| ">=" {GTEQ}
+| "<=" {LTEQ}
+| '>' {GT}
+| '<' {LT}
+| '=' {EQ}
+| "/\\" {CONJ}
+
+| ">=" {GTEQ}
+| "<=" {LTEQ}
 | 'w' {OMEGA}
 | '(' { LPAR }
 | ')' { RPAR }
@@ -65,6 +75,12 @@ rule token = parse
 | id as str { VAR str }
 | "|-" {ENTIL}
 | "\\/" {DISJ}
+| '+' { PLUS }
+| '-' { MINUS }
+| '~' {NEGATION}
+| '[' { LBrackets }
+| ']' { RBrackets }
+
 | ',' { COMMA }
 | ':' { COLON }
 | '^' { POWER }
@@ -85,23 +101,17 @@ rule token = parse
 (*
 
 
-| '[' { LBrackets }
-| ']' { RBrackets }
-| "TRUE" { TRUE }
-| "FALSE" { FALSE }
+
 | "if" {IF}
 | "else" {ELSE}
-
+| "abort" {ABORT} 
+| "when" {WHEN}
 | "[]" {GLOBAL}
 | "include" {INCLUDE}
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | '"'      { read_string (Buffer.create 17) lexbuf }
-| ">=" {GTEQ}
-| "<=" {LTEQ}
-| '>' {GT}
-| '<' {LT}
-| '=' {EQ}
+
 
 | '|' { CHOICE }
 
@@ -113,18 +123,13 @@ rule token = parse
 | '}' { RBRACK }
 
 
-| '+' { PLUS }
-| '-' { MINUS }
+
 | '#' { SHARP }
 
 
-| '~' {NEGATION}
 
 
-| "/\\" {CONJ}
-| "==" {EQEQ}
-| ">=" {GTEQ}
-| "<=" {LTEQ}
+
 
 *)
 | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }

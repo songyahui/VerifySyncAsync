@@ -7,9 +7,19 @@ open List
 open Ast
 open Printf
 open Int32
+open Askz3
 
 
 exception Foo of string
+
+let entailConstrains pi1 pi2 = 
+
+  let sat = not (askZ3 (Neg (PureOr (Neg pi1, pi2)))) in
+  (*
+  print_string (showPure pi1 ^" -> " ^ showPure pi2 ^" == ");
+  print_string (string_of_bool (sat) ^ "\n");
+  *)
+  sat;;
 
 
 (*used to generate the free veriables, for subsititution*)
@@ -95,20 +105,29 @@ let rec input_lines file =
   | _ -> failwith "Weird input_line return value"
 ;;
 
+let rec string_of_action (act:action) : string = 
+  match act with 
+    Delay n -> "Delay " ^ string_of_int n  
+  | Timeout n -> "time out " ^ string_of_int n  
+  | NoneAct -> "NoneAct";;
+
+
 let rec string_of_prog (p : prog) : string =
   match p with
-    Nothing -> "nothing"
-  | Pause -> "pause"
+    Halt -> "halt"
+  | Yield -> "yield"
   | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
-  | Par (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
+  | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
   | Emit s -> "emit " ^ s 
-  | Present (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
+  | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
-  | Exit  mn -> "exit " ^ mn 
+  | Break  mn -> "exit " ^ mn 
   | Run mn -> "run " ^ mn
   | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
+  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
+  | Await (mn) -> "await "^ mn 
   ;;
 
 let rec showLTL (ltl:ltl):string =
@@ -130,8 +149,8 @@ let string_of_state (state :signal):string =
   | Zero name -> "" (*"!"^name ^","*);; 
 
 
-let string_of_sl (sl):string = 
-  List.fold_left (fun acc sig_ -> 
+let string_of_sl (sl: instance):string = 
+  List.fold_left (fun acc (sig_, n) -> 
   acc ^ "" ^ 
   string_of_state sig_
   ) "" sl
@@ -142,45 +161,55 @@ let string_of_instance (mapping:instance) :string =
   temp1
   ;;
 
+let rec string_of_terms (t:terms):string = 
+  match t with
+    Var name -> name
+  | Number n -> string_of_int n
+  | Plus (t1, t2) -> (string_of_terms t1) ^ ("+") ^ (string_of_terms t2)
+  | Minus (t1, t2) -> (string_of_terms t1) ^ ("-") ^ (string_of_terms t2)
 
+  ;;
 
 let rec string_of_es (es:es) :string = 
   match es with 
     Bot -> "_|_"  
   | Emp -> "emp"
   | Instance ins  -> string_of_instance ins
-  | Con (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
+  | Cons (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
   | Omega esIn -> "(" ^ string_of_es esIn ^ ")w" 
-  | Ntimed (esIn, n) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_int n 
-  | Disj (es1, es2) -> string_of_es es1 ^ " \\/ " ^ string_of_es es2
+  | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
   ;;
 
-let string_of_p_instance ((a, b):p_instance) :string = 
-  let temp1 = "{" ^ string_of_sl a ^ " /\\ " in 
-  let temp2 = "" ^ string_of_sl b ^ "}" in 
-  temp1 ^ temp2
-  ;;
+(*To pretty print pure formulea*)
+let rec string_of_pure (p:pure):string = 
+  match p with
+    TRUE -> "true"
+  | FALSE -> "false"
+  | Gt (t1, t2) -> (string_of_terms t1) ^ ">" ^ (string_of_terms t2)
+  | Lt (t1, t2) -> (string_of_terms t1) ^ "<" ^ (string_of_terms t2)
+  | GtEq (t1, t2) -> (string_of_terms t1) ^ ">=" ^ (string_of_terms t2)
+  | LtEq (t1, t2) -> (string_of_terms t1) ^ "<=" ^ (string_of_terms t2)
+  | Eq (t1, t2) -> (string_of_terms t1) ^ "=" ^ (string_of_terms t2)
+  | PureOr (p1, p2) -> "("^string_of_pure p1 ^ "\\/" ^ string_of_pure p2^")"
+  | PureAnd (p1, p2) -> "("^string_of_pure p1 ^ "/\\" ^ string_of_pure p2^")"
+  | Neg p -> "(!" ^ "(" ^ string_of_pure p^"))"
+  ;; 
 
-let rec string_of_p_es (es:p_es) :string = 
-  match es with 
-    PBot -> "_|_"  
-  | PEmp -> "emp"
-  | PInstance ins  -> string_of_p_instance ins
-  | PCon (es1, es2) ->  "("^string_of_p_es es1 ^ " . " ^ string_of_p_es es2^")"
-  | PKleene esIn -> "(" ^ string_of_p_es esIn ^ ")*" 
-  | POmega esIn -> "(" ^ string_of_p_es esIn ^ ")w" 
-  | PNtimed (esIn, n) ->"(" ^ string_of_p_es esIn ^ ")" ^ string_of_int n 
-  | PDisj (es1, es2) -> string_of_p_es es1 ^ " \\/ " ^ string_of_p_es es2
-  ;;
+let rec string_of_effect(eff:effect): string = 
+  match eff with 
+    Effect (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
+  | Disj (es1, es2) -> string_of_effect es1 ^ " \\/ " ^ string_of_effect es2
+;;
+
 
 let string_of_spec_prog (inp:spec_prog):string = 
   let  (nm, ins, outs, pre, post, p) = inp in 
   let body = string_of_prog p in 
-  let spec = "\n/*@\nrequire " ^ string_of_es pre ^"\nensure " ^ string_of_es post ^"\n@*/\n\n" in 
+  let spec = "\n/*@\nrequire " ^ string_of_effect pre ^"\nensure " ^ string_of_effect post ^"\n@*/\n\n" in 
   
-  let inp = "input " ^ (List.fold_left (fun acc a -> acc ^ " " ^ a) "" ins) ^ ";\n" in 
-  let outp = "output " ^ (List.fold_left (fun acc a -> acc ^ " " ^ a) "" outs) ^ ";\n" in 
+  let inp = "input " ^ string_of_sl ins (*(List.fold_left (fun acc a -> acc ^ " " ^ a) "" ins) ^ ";\n" *)in 
+  let outp = "output " ^ string_of_sl outs (* (List.fold_left (fun acc a -> acc ^ " " ^ a) "" outs) ^ ";\n"*) in 
   let whole = "module " ^ nm  ^": \n\n" ^ inp ^ outp ^ spec ^ body ^ "\n\nend module" in 
   whole ;;
 
@@ -191,7 +220,7 @@ let string_of_full_prog (full: spec_prog list):string =
 let string_of_inclusion (lhs:es) (rhs:es) :string = 
   string_of_es lhs ^" |- " ^string_of_es rhs 
   ;;
-
+(*
 let string_of_trace ((his, cur, trap):trace) :string = 
   "Trace: (" ^ string_of_p_es his ^")." ^ 
   (match cur with 
@@ -209,7 +238,7 @@ let string_of_trace ((his, cur, trap):trace) :string =
 
 let string_of_prg_state (t_li : trace list):string = 
   List.fold_left (fun acc a -> acc ^ string_of_trace a ) "\n" t_li ;;
-
+*)
 
 let compareSignal s1 s2 : bool =
   match (s1, s2) with 
@@ -236,15 +265,13 @@ let rec checkHasFalse ss : bool =
   [] -> false 
 | x::xs -> if oneOfFalse x xs then true else checkHasFalse xs 
 ;;
-
+(*
 let superSetOf (bigger:instance) (smaller:instance) :bool = 
   let rec helper li cur = 
     match li with 
       [] -> false 
     | x::xs -> if compareSignal x cur then true else helper xs cur
   in List.fold_left (fun acc a -> acc && helper bigger a ) true smaller ;;
-
-
 let rec compareES es1 es2 : bool = 
   match (es1, es2) with 
   | (Bot, Bot) -> true 
@@ -252,7 +279,7 @@ let rec compareES es1 es2 : bool =
   | (Instance ins1, Instance ins2) -> superSetOf ins1 ins2 && superSetOf ins2 ins1
   | ( Kleene es1, Kleene es2) -> compareES es1 es2
   | ( Omega es1, Omega es2) -> compareES es1 es2
-  | (Con (es1L, es1R), Con (es2L, es2R)) -> 
+  | (Cons (es1L, es1R), Cons (es2L, es2R)) -> 
     if (compareES es1L es2L) == false then false
     else (compareES es1R es2R)
   | (Disj (es1L, es1R), Disj (es2L, es2R)) -> 
@@ -260,6 +287,8 @@ let rec compareES es1 es2 : bool =
       else ((compareES es1L es2R) && (compareES es1R es2L))
   | _ -> false 
   ;;
+
+*)
 
 
 
@@ -280,31 +309,18 @@ let rec deleteRedundent sl : signal list =
 
   
 
-let rec nullablePes (es:p_es):bool = 
-  match es with 
-    PBot -> false 
-  | PEmp -> true
-  | PInstance _  -> false 
-  | PCon (es1, es2) -> nullablePes es1 && nullablePes es2
-  | PDisj (es1, es2) -> nullablePes es1 || nullablePes es2
-  | PKleene _ -> true  
-  | POmega _ -> false 
-  | PNtimed (_, n) -> n==0 
-  ;;
-
-let rec nullable (es:es):bool = 
+let rec nullable (pi :pure) (es:es) : bool=
   match es with 
     Bot -> false 
   | Emp -> true
   | Instance _  -> false 
-  | Con (es1, es2) -> nullable es1 && nullable es2
-  | Disj (es1, es2) -> nullable es1 || nullable es2
+  | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   | Kleene _ -> true  
   | Omega _ -> false 
-  | Ntimed (_, n) -> n==0 
+  | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
   ;;
 
-let rec normalPES es: p_es =
+(*let rec normalPES es: p_es =
   match es with 
   
   | PCon (es1, es2) -> 
@@ -654,3 +670,4 @@ let rec pesToEs (p_es:p_es): es=
   | PNtimed (es1, n) -> Ntimed (pesToEs es1, n)
   ;;
 
+*)

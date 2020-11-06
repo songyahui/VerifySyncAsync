@@ -1,52 +1,65 @@
-type var = string  (*name of the signal e.g., A B C*)
-type name = string
+type name = string (*name of the signal e.g., A B C*)
+type lable = string
 
 
-type signal = One of var | Zero of var
+type signal = One of name | Zero of name
 
 (*signal set*)
-type instance = signal list ;;
+type instance = (signal * int option) list ;;
 
-type p_instance = signal list * signal list ;;
-
-type p_es = PBot 
-        | PEmp 
-        | PInstance of p_instance 
-        | PCon of p_es * p_es
-        | PDisj of p_es * p_es
-        | PKleene of p_es
-        | POmega of p_es
-        | PNtimed of p_es * int
+type terms = Var of name
+           | Number of int
+           | Plus of terms * terms
+           | Minus of terms * terms
 
 type es = Bot 
         | Emp 
         | Instance of instance 
-        | Con of es * es
-        | Disj of es * es
+        | Cons of es * es
+        | Ttimes of es * terms
         | Kleene of es
         | Omega of es
-        | Ntimed of es * int
+        
 
-type history = p_es 
+(*Arithimetic pure formulae*)
+type pure = TRUE
+          | FALSE
+          | Gt of terms * terms
+          | Lt of terms * terms
+          | GtEq of terms * terms
+          | LtEq of terms * terms
+          | Eq of terms * terms
+          | PureOr of pure * pure
+          | PureAnd of pure * pure
+          | Neg of pure
 
-type current = p_instance
+type effect = 
+            Effect of pure * es
+          | Disj of effect * effect
 
-type trace = history *  current option * name option (*exiting from a trap*) 
 
-type inclusion = es * es;;
+type inclusion = effect * effect;;    
 
-type prog = Nothing 
-          | Pause 
+type action = Delay of int | Timeout of int | NoneAct
+
+type prog = Halt 
+          | Yield 
           | Seq of prog * prog 
-          | Par of prog * prog
+          | Fork of prog * prog
           | Loop of prog
-          | Declear of var * prog
-          | Emit of var
-          | Present of var * prog * prog
-          | Trap of name * prog
-          | Exit of name
+          | Declear of name * prog
+          | Emit of name
+          | If of name * prog * prog
+          | Trap of lable * prog
+          | Break of lable
           | Run of name
           | Suspend of prog * name 
+(*Esterel SYNC*)
+          | Async of name * prog * action  (*set a timeout*)
+          | Await of name 
+(*JS ASYNC*)
+
+
 
 type ltl = Lable of string 
         | Next of ltl
@@ -58,7 +71,6 @@ type ltl = Lable of string
         | AndLTL of ltl * ltl
         | OrLTL of ltl * ltl
 
-type prog_states = trace list
 
-type spec_prog = name * var list * var list * es * es * prog
-            (* name , input, output, precon, postcon, body*)
+type spec_prog = name * instance * instance * effect * effect * prog
+              (* name , input,     output, precon, postcon, body*)
