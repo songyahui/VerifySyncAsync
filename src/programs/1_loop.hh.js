@@ -1,4 +1,4 @@
-hiphop module prg(in a, out blur, inout c) 
+hiphop module prg() 
 /*@
   require TRUE /\ {OPEN} 
   ensure TRUE /\ {}.{CLOSE} 
@@ -7,7 +7,7 @@ hiphop module prg(in a, out blur, inout c)
    loop {
       signal L;
 
-      emit L (1);
-      yield
+      emit L(1);
+      yield;
    }
 }

@@ -9,10 +9,10 @@
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN OMEGA
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
-%left CONCAT DISJ PAR SIMI 
+%left CONCAT DISJ SIMI 
 (* %right SIMI PAR *)
 %token FUTURE GLOBAL IMPLY LTLNOT NEXT UNTIL LILAND LILOR 
-%token LSPEC RSPEC ENSURE REQUIRE MODULE COLON OUT INOUT
+%token LSPEC RSPEC ENSURE REQUIRE MODULE OUT INOUT
 %token LBrackets RBrackets HIPHOP
 
 %start full_prog specProg pRog ee ltl_p
@@ -82,6 +82,8 @@ pure:
 | a = pure CONJ b = pure {PureAnd (a, b)}
 | a = pure DISJ b = pure {PureOr (a, b)}
 
+
+
 es:
 | EMPTY { Emp }
 | LBRACK signals = existVar RBRACK 
@@ -92,7 +94,7 @@ es:
 | LPAR r = es RPAR { r }
 | a = es CONCAT b = es { Cons(a, b) } 
 | LPAR a = es RPAR KLEENE {Kleene a}
-| LPAR r = es RPAR n = INTE { Ttimes (r, Number n) }
+| LPAR r = es RPAR n = term { Ttimes (r,  n) }
 | LPAR a = es RPAR POWER OMEGA {Omega a}
 
 effect:
@@ -113,6 +115,7 @@ entailment:
 | lhs = effect   ENTIL   rhs = effect { (lhs, rhs)}
 
 pRog_aux:
+| {Halt}
 | NOTHING { Halt }
 | PAUSE   { Yield } 
 | EMIT s = VAR  {Emit (s, None)}
@@ -133,9 +136,6 @@ pRog:
 | p1 = pRog SIMI p2 = pRog{ Seq (p1, p2)}
 | LPAR p1 = pRog RPAR PAR LPAR p2 = pRog RPAR{ Fork (p1, p2)}
 
-(*
-
-*)
 
 argueVAR: var = VAR {([(Zero var, None)], [(Zero var, None)])}
 | IN var = VAR {([(Zero var, None)], [])}

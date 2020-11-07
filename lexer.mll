@@ -82,7 +82,7 @@ rule token = parse
 | ']' { RBrackets }
 
 | ',' { COMMA }
-| ':' { COLON }
+
 | '^' { POWER }
 | '*' {KLEENE}
 
@@ -111,7 +111,7 @@ rule token = parse
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | '"'      { read_string (Buffer.create 17) lexbuf }
-
+| ':' { COLON }
 
 | '|' { CHOICE }
 
