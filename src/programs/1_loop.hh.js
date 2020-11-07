@@ -2,7 +2,7 @@ hiphop module prg() {
    loop {
       signal L;
 
-      emit L( "foo bar" );
+      emit L( 1 );
       yield;
    }
 }

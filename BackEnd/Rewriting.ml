@@ -16,8 +16,9 @@ open Sys
 
 
 
-let rec containment (evn: inclusion list) (lhs:es) (rhs:es) : (bool * binary_tree ) = 
-  let lhs = normalES lhs in 
+let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree ) = 
+  (true, Node("containment", []))
+ (* let lhs = normalES lhs in 
   let rhs = normalES rhs in 
   let entail = string_of_inclusion lhs rhs in 
   if nullable lhs == true && nullable rhs==false then (false, Node (entail^ "   [DISPROVE]", []))
@@ -44,7 +45,7 @@ let rec containment (evn: inclusion list) (lhs:es) (rhs:es) : (bool * binary_tre
     in 
     let (result, trees) =  helper [] fst in 
     (result, Node (entail^ "   [UNFOLD]", trees))  
-    
+    *)
   ;;
 
 
@@ -54,9 +55,9 @@ let check_containment lhs rhs : (bool * binary_tree ) =
   containment [] lhs rhs
   ;;
 
-let printReport (lhs:es) (rhs:es) :string =
-
-
+let printReport (lhs:effect) (rhs:effect) :string =
+  "printReport"
+(*
   let entailment = (string_of_es (normalES lhs)) ^ " |- " ^ (string_of_es (normalES rhs)) (*and i = INC(lhs, rhs)*) in
 
   let startTimeStamp = Sys.time() in
@@ -65,7 +66,7 @@ let printReport (lhs:es) (rhs:es) :string =
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
   let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed\n" else "Fail\n")  ^verification_time^" \n\n"^ result)
   in buffur
-  
+  *)
   ;;
 
 (*

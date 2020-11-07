@@ -12,7 +12,7 @@
 %left CONCAT DISJ PAR SIMI 
 (* %right SIMI PAR *)
 %token FUTURE GLOBAL IMPLY LTLNOT NEXT UNTIL LILAND LILOR 
-%token LSPEC RSPEC ENSURE REQUIRE MODULE COLON INPUT OUTPUT
+%token LSPEC RSPEC ENSURE REQUIRE MODULE COLON OUT INOUT
 %token LBrackets RBrackets HIPHOP
 
 %start full_prog specProg pRog ee ltl_p
@@ -50,7 +50,7 @@ ltl :
 | LPAR p1= ltl LILAND p2= ltl RPAR {AndLTL (p1, p2)}  
 | LPAR p1= ltl LILOR p2= ltl RPAR {OrLTL (p1, p2)}  
 
-singleVAR: var = VAR {[(One var, None)]}
+singleVAR: var = VAR {[(Zero var, None)]}
 
 existVar:
 | {[]}
@@ -116,8 +116,8 @@ pRog_aux:
 | NOTHING { Halt }
 | PAUSE   { Yield } 
 | EMIT s = VAR  {Emit s}
-| LOOP p = pRog END  LOOP { Loop p}
-| SIGNAL s = VAR IN p = pRog END SIGNAL { Declear (s, p)}
+| LOOP LBRACK p = pRog RBRACK { Loop p}
+| SIGNAL s = VAR SIMI p = pRog { Declear (s, p)}
 | PRESENT s = VAR THEN p1 = pRog ELSE p2 = pRog END PRESENT { If (s, p1, p2)}
 | TRAP mn = VAR IN p1 = pRog END TRAP {Trap (mn, p1)}
 | EXIT mn = VAR  {Break mn}
@@ -134,29 +134,31 @@ pRog:
 
 *)
 
+argueVAR: var = VAR {([(Zero var, None)], [(Zero var, None)])}
+| IN var = VAR {([(Zero var, None)], [])}
+| OUT var = VAR {([], [(Zero var, None)])}
+| INOUT var = VAR {([(Zero var, None)], [(Zero var, None)])}
+
+argueListVar:
+| {([], [])}
+| p = argueVAR {p}
+| p1 = argueVAR  COMMA  p2 = argueListVar {
+  let (in1, out1) = p1 in 
+  let (in2, out2) = p2 in 
+  (append in1 in2, append out1 out2) }
+
+
 specProg: 
-| HIPHOP MODULE nm = VAR COLON 
-  INPUT ins = existVar SIMI
-  OUTPUT outs = existVar SIMI
-  LSPEC REQUIRE pre = effect ENSURE post = effect RSPEC p = pRog 
-  END MODULE
-  {(nm, ins, outs, pre, post, p)}
-| HIPHOP MODULE nm = VAR COLON 
-  OUTPUT outs = existVar SIMI
-  LSPEC REQUIRE pre = effect ENSURE post = effect RSPEC p = pRog 
-  END MODULE
-  {(nm, [], outs, pre, post, p)}
+| HIPHOP MODULE nm = VAR LPAR augur = argueListVar  RPAR
 
-| HIPHOP MODULE nm = VAR COLON 
-  INPUT ins = existVar SIMI
-  OUTPUT outs = existVar SIMI
-  p = pRog 
-  END MODULE
-  {(nm, ins, outs, Effect (TRUE, Emp), Effect (TRUE, Emp), p)}
+  LBRACK p = pRog RBRACK
 
-| HIPHOP MODULE nm = VAR COLON 
-  OUTPUT outs = existVar SIMI
-  p = pRog 
-  END MODULE
-  {(nm, [], outs, Effect (TRUE, Emp), Effect (TRUE, Emp), p)}
+(* 
+  LSPEC REQUIRE pre = effect ENSURE post = effect RSPEC 
+  
+  *)
+
+  {
+    let (ins, out) = augur in 
+    (nm, ins, out, Effect (TRUE, Emp), Effect (TRUE, Emp), p)}
 

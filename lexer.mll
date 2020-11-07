@@ -44,8 +44,8 @@ rule token = parse
 | "ensure" {ENSURE}
 | "module" {MODULE}
 | "hiphop" {HIPHOP}
-| "input" {INPUT}
-| "output" {OUTPUT}
+| "inout" {INOUT}
+| "out" {OUT}
 | "end" {END}
 | "in" {IN}
 | "then" {THEN}

@@ -9,7 +9,7 @@ open Rewriting
 open Sys
 
 
-
+(*
 let rec can_fun (s:var) (prog:prog) (origin: prog) (full:spec_prog list) :bool = 
   match prog with 
     Nothing -> false 
@@ -486,10 +486,12 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
 
 
   ;;
-
+*)
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
+  "verifier"
+  (*
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
   (*print_string (string_of_prg_state (es_To_state pre));*)
   let initialState = initialProgState oup_sig (p_es_To_state (esToPes pre)) in 
@@ -521,6 +523,7 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   "[T.r.s: Verification for Post Condition]\n" ^ 
   printReport correct_Eff post
   )
+  *)
   ;;
 
 
