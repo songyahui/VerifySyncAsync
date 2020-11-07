@@ -48,7 +48,7 @@ type prog = Halt
           | Fork of prog * prog
           | Loop of prog
           | Declear of name * prog
-          | Emit of name
+          | Emit of name * int option
           | If of name * prog * prog
           | Trap of lable * prog
           | Break of lable

@@ -120,7 +120,12 @@ let rec string_of_prog (p : prog) : string =
   | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
-  | Emit s -> "emit " ^ s 
+  | Emit (s, arg) -> "emit " ^ s ^ 
+  (
+    match arg with 
+      None -> ""
+    | Some (n) -> "(" ^ string_of_int n ^")"
+  ) 
   | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 

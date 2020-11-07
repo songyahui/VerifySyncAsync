@@ -115,7 +115,10 @@ entailment:
 pRog_aux:
 | NOTHING { Halt }
 | PAUSE   { Yield } 
-| EMIT s = VAR  {Emit s}
+| EMIT s = VAR  {Emit (s, None)}
+
+| EMIT s = VAR  LPAR n =  INTE RPAR {Emit (s, Some n)}
+
 | LOOP LBRACK p = pRog RBRACK { Loop p}
 | SIGNAL s = VAR SIMI p = pRog { Declear (s, p)}
 | PRESENT s = VAR THEN p1 = pRog ELSE p2 = pRog END PRESENT { If (s, p1, p2)}
