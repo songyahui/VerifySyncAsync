@@ -153,13 +153,20 @@ argueListVar:
 
 specProg: 
 | HIPHOP MODULE nm = VAR LPAR augur = argueListVar  RPAR
+  LSPEC REQUIRE pre = effect ENSURE post = effect RSPEC 
+
 
   LBRACK p = pRog RBRACK
 
-(* 
-  LSPEC REQUIRE pre = effect ENSURE post = effect RSPEC 
+
   
-  *)
+  {
+    let (ins, out) = augur in 
+    (nm, ins, out, pre, post , p)}
+
+| HIPHOP MODULE nm = VAR LPAR augur = argueListVar  RPAR
+
+  LBRACK p = pRog RBRACK
 
   {
     let (ins, out) = augur in 

@@ -151,13 +151,17 @@ let rec showLTL (ltl:ltl):string =
 let string_of_state (state :signal):string = 
   match state with 
     One name -> name ^","
-  | Zero name -> "" (*"!"^name ^","*);; 
+  | Zero name -> "!"^name ^",";; 
 
 
 let string_of_sl (sl: instance):string = 
   List.fold_left (fun acc (sig_, n) -> 
   acc ^ "" ^ 
-  string_of_state sig_
+  string_of_state sig_ ^ (
+    match n with 
+      None -> ""
+    | Some n -> "(" ^ string_of_int n ^")"
+  )
   ) "" sl
 ;;
 

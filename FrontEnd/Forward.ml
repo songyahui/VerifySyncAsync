@@ -490,7 +490,7 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
-  "verifier"
+  string_of_spec_prog spec_prog
   (*
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
   (*print_string (string_of_prg_state (es_To_state pre));*)
