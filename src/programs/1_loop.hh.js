@@ -1,7 +1,7 @@
 hiphop module prg() 
 /*@
-  require TRUE /\ {OPEN} 
-  ensure TRUE /\ {}.{CLOSE} 
+  require TRUE /\ emp 
+  ensure TRUE /\ ({L(1)})w
   @*/
 {
    loop {

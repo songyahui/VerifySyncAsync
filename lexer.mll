@@ -35,6 +35,10 @@ rule token = parse
 | "loop" {LOOP}
 | "signal" {SIGNAL}
 | "emit" {EMIT}
+| "await" {AWAIT}
+| "async" {ASYNC}
+| "suspend" {SUSPEND}
+| "when" {WHEN}
 | "if" {PRESENT}
 | "run" {RUN}
 | "trap" {TRAP}
@@ -105,7 +109,7 @@ rule token = parse
 | "if" {IF}
 | "else" {ELSE}
 | "abort" {ABORT} 
-| "when" {WHEN}
+
 | "[]" {GLOBAL}
 | "include" {INCLUDE}
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}

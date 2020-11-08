@@ -5,7 +5,7 @@
 %token <string> VAR
 %token <int> INTE
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
-
+%token AWAIT ASYNC SUSPEND 
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN OMEGA
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
@@ -13,7 +13,7 @@
 (* %right SIMI PAR *)
 %token FUTURE GLOBAL IMPLY LTLNOT NEXT UNTIL LILAND LILOR 
 %token LSPEC RSPEC ENSURE REQUIRE MODULE OUT INOUT
-%token LBrackets RBrackets HIPHOP
+%token LBrackets RBrackets HIPHOP 
 
 %start full_prog specProg pRog ee ltl_p
 %type <(Ast.spec_prog) list> full_prog
@@ -52,6 +52,7 @@ ltl :
 
 singleVAR: var = VAR {[(One var, None)]}
 | LTLNOT var = VAR {[(Zero var, None)]}
+| var = VAR LPAR  n = INTE RPAR {[(One var, Some n)]}
 
 existVar:
 | {[]}
@@ -96,7 +97,7 @@ es:
 | a = es CONCAT b = es { Cons(a, b) } 
 | LPAR a = es RPAR KLEENE {Kleene a}
 | LPAR r = es RPAR n = term { Ttimes (r,  n) }
-| LPAR a = es RPAR POWER OMEGA {Omega a}
+| LPAR a = es RPAR OMEGA {Omega a}
 
 effect:
 | LPAR r = effect RPAR { r }
@@ -131,6 +132,9 @@ pRog_aux:
 (*| EXIT mn = VAR d = INTE  {Exit (mn, d)}*)
 | RUN mn = VAR {Run mn}
 | ABORT p = pRog  WHEN s = VAR {Suspend (p, s)}
+| AWAIT mn = VAR {Await mn}
+| SUSPEND p = pRog WHEN mn = VAR {Suspend(p, mn)}
+| ASYNC mn = VAR  LBRACK p = pRog RBRACK {Async(mn, p, NoneAct)}
 
 pRog:
 | p = pRog_aux {p}
