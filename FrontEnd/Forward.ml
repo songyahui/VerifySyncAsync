@@ -488,11 +488,40 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
   ;;
 *)
 
+let rec forward (evn: instance) (current:effect) (prog:prog) (full: spec_prog list): effect =
+  match prog with 
+    Halt -> current
+  | _ -> current
+    (*
+  | Yield -> 
+  | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
+  | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
+  | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
+  | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
+  | Emit (s, arg) -> "emit " ^ s ^ 
+  (
+    match arg with 
+      None -> ""
+    | Some (n) -> "(" ^ string_of_int n ^")"
+  ) 
+  | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
+  | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
+  | Break  mn -> "exit " ^ mn 
+  | Run mn -> "run " ^ mn
+  | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
+  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
+  | Await (mn) -> "await "^ mn 
+  *)
+  ;;
+
+
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
-  string_of_spec_prog spec_prog
-  (*
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
+  let final = forward inp_sig pre prog full in 
+  string_of_spec_prog spec_prog ^ "\n" ^string_of_effect final 
+  (*
+  
   (*print_string (string_of_prg_state (es_To_state pre));*)
   let initialState = initialProgState oup_sig (p_es_To_state (esToPes pre)) in 
 
