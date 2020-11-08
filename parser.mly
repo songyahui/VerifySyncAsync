@@ -50,7 +50,8 @@ ltl :
 | LPAR p1= ltl LILAND p2= ltl RPAR {AndLTL (p1, p2)}  
 | LPAR p1= ltl LILOR p2= ltl RPAR {OrLTL (p1, p2)}  
 
-singleVAR: var = VAR {[(Zero var, None)]}
+singleVAR: var = VAR {[(One var, None)]}
+| LTLNOT var = VAR {[(Zero var, None)]}
 
 existVar:
 | {[]}

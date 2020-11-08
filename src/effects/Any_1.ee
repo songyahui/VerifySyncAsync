@@ -1,6 +1,6 @@
 
 
-TRUE /\ {A} |- TRUE /\  ({})*.{A};
+TRUE /\ {!A} |- TRUE /\  ({})*.{A};
 
 
 TRUE /\ ({A, D, C})*.{} \/ TRUE /\  {B}.({A})* |- TRUE /\ ({})* \/ TRUE /\ ({A,B})*;
