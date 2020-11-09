@@ -79,9 +79,7 @@ let rec state_To_p_es (state:prog_states):p_es =
 
 
 
-let make_nothing (evn: string list) : signal list = 
-  List.map (fun a -> (Zero a) ) evn 
-  ;;
+
 
 let rec zip a b =
   match (a,b) with
@@ -486,15 +484,34 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
 
 
   ;;
+
+  let make_nothing (evn: instance) : instance = 
+  List.map (fun (a, b) -> 
+  match a 
+  
+  (Zero a, b) ) evn 
+  ;;
 *)
+
+let rec append_es_to_effect es eff : effect = 
+  match eff with 
+    Effect (p , es1) -> Effect (p, Cons(es1, es))
+  | Disj (eff1, eff2) -> Disj (append_es_to_effect es eff1, append_es_to_effect es eff2)
+  ;;
+
 
 let rec forward (evn: instance) (current:effect) (prog:prog) (full: spec_prog list): effect =
   match prog with 
     Halt -> current
+  | Yield -> append_es_to_effect (Instance evn) current 
   | _ -> current
-    (*
-  | Yield -> 
+  (*
   | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
+
+
+  
+
+
   | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
