@@ -18,7 +18,7 @@
 
   /*@
   require {} 
-  ensure (({BTN}.{CLOSE})\/{})*
+  ensure (({BTN}.{CLOSE})\/{})^*
   @*/
 
   signal OPEN in 

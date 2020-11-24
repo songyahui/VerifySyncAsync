@@ -95,9 +95,9 @@ es:
   
 | LPAR r = es RPAR { r }
 | a = es CONCAT b = es { Cons(a, b) } 
-| LPAR a = es RPAR KLEENE {Kleene a}
+| LPAR a = es RPAR POWER KLEENE {Kleene a}
 | LPAR r = es RPAR n = term { Ttimes (r,  n) }
-| LPAR a = es RPAR OMEGA {Omega a}
+| LPAR a = es RPAR POWER OMEGA {Omega a}
 
 effect:
 | LPAR r = effect RPAR { r }

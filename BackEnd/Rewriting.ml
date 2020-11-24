@@ -77,9 +77,3 @@ let main =
   print_string (tree);
   *)
 
-let rec input_lines file =
-  match try [input_line file] with End_of_file -> [] with
-   [] -> []
-  | [line] -> (String.trim line) :: input_lines file
-  | _ -> failwith "Weird input_line return value"
-

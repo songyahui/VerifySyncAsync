@@ -22,3 +22,10 @@ ocamlc -o hip parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo Forward.cm
 ocamlc -o sleek parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo sleek.cmo
 
 #ocamlc -o ltl parser.cmo  lexer.cmo Pretty.cmo LTL_Traslator.cmo
+
+rm *.cmi
+rm *.cmo
+
+rm lexer.ml
+rm parser.ml
+rm parser.mli

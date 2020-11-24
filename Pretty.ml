@@ -188,6 +188,9 @@ let rec string_of_es (es:es) :string =
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
   | Omega esIn -> "(" ^ string_of_es esIn ^ ")w" 
   | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
+  | TimeUnit -> "O"
+  | Choice (es1, es2) -> "("^string_of_es es1 ^ " + " ^ string_of_es es2^")"
+  | Par (es1, es2) -> "("^string_of_es es1 ^ " || " ^ string_of_es es2^")"
   ;;
 
 (*To pretty print pure formulea*)
@@ -327,6 +330,9 @@ let rec nullable (pi :pure) (es:es) : bool=
   | Kleene _ -> true  
   | Omega _ -> false 
   | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
+  | TimeUnit -> false 
+  | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
+  | Par (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   ;;
 
 (*let rec normalPES es: p_es =
