@@ -151,7 +151,8 @@ let rec showLTL (ltl:ltl):string =
 let string_of_state (state :signal):string = 
   match state with 
     One name -> name ^","
-  | Zero name -> "!"^name ^",";; 
+  | Zero name -> "!"^name ^"," 
+  | Wait name -> "?"^name ^",";;
 
 
 let string_of_sl (sl: instance):string = 
@@ -188,7 +189,7 @@ let rec string_of_es (es:es) :string =
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
   | Omega esIn -> "(" ^ string_of_es esIn ^ ")w" 
   | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
-  | TimeUnit -> "O"
+  | TimeUnit -> "t_unit"
   | Choice (es1, es2) -> "("^string_of_es es1 ^ " + " ^ string_of_es es2^")"
   | Par (es1, es2) -> "("^string_of_es es1 ^ " || " ^ string_of_es es2^")"
   ;;
@@ -229,8 +230,10 @@ let string_of_full_prog (full: spec_prog list):string =
   List.fold_left (fun acc (p) -> acc ^ "\n\n" ^ string_of_spec_prog p) "" full
 ;;
 
-let string_of_inclusion (lhs:es) (rhs:es) :string = 
-  string_of_es lhs ^" |- " ^string_of_es rhs 
+
+
+let string_of_inclusion (lhs:effect) (rhs:effect) :string = 
+  string_of_effect lhs ^" |- " ^string_of_effect rhs 
   ;;
 (*
 let string_of_trace ((his, cur, trap):trace) :string = 

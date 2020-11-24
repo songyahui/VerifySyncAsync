@@ -2,7 +2,7 @@ type name = string (*name of the signal e.g., A B C*)
 type lable = string
 
 
-type signal = One of name | Zero of name
+type signal = One of name | Zero of name | Wait of name 
 
 (*signal set*)
 type instance = (signal * int option) list ;;
