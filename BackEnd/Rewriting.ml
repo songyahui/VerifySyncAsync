@@ -361,15 +361,62 @@ let rec normalEffect (eff:effect) : effect =
 
 
 
-let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree ) = 
+let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tree * bool) = 
   
-  let lhs = normalEffect lhs in 
-  let rhs = normalEffect rhs in 
-  let entail = string_of_inclusion lhs rhs in 
-  (true, Node("containment", []))
+  let normalFormL = normalEffect lhs in 
+  let normalFormR = normalEffect rhs in 
+  let showEntail = string_of_inclusion lhs rhs in 
+
+  match (normalFormL, normalFormR) with 
+      (*this means the assertion or precondition is already fail*)
+    (Effect(FALSE, _), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
+  | (Effect(_, Bot), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
+  | (_, Effect(FALSE, _)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
+  | (_, Effect(_, Bot)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
+  | _ -> (Node("containment", []), true)
   (*
+  
+  | (Disj (effL1, effL2), _) -> 
+    (*[LHSOR]*)
+      let (tree1, re1, states1 , hypo ) = (containment1 effL1 effR delta mode) in
+      if re1 == false then (Node (showEntail ^ showRule LHSOR, [tree1] ),  false, states1, [])
+      else 
+        (
+        (*print_string ("lallalallalal\n");*)
+        let (tree2, re2 , states2, hypo1) = (containment1 effL2 effR (List.append delta (sublist (List.length delta) (List.length hypo -1 ) hypo)) mode) in
+        (Node (showEntail ^ showRule LHSOR, [tree1; tree2] ), re2, states1+states2, hypo1)
+        )
+
+  (****If worriy of comokenness, need to delete this part. *****)
+  | ( _, Disj (effL1, effL2)) -> 
+    (*[RHSOR]*)
+      let (tree1, re1, states1, hypo ) = (containment1 normalFormL effL1 delta mode) in
+      if re1 == true then (Node (showEntail ^ showRule RHSOR, [tree1] ),  true, states1, hypo)
+      else 
+        let (tree2, re2 , states2, hypo1) = (containment1 normalFormL effL2  delta mode) in 
+        (Node (showEntail ^ showRule RHSOR, [tree2] ), re2, states2, hypo1)
+    (****If worriy of comokenness, need to delete this part. *****)
+
+
+  | (Effect (piL, esL),Effect(piR, ESAnd (esR1, esR2))) ->
+      let (tree1, re1, states1, hypo ) = (containment1 normalFormL (Effect(piR, esR1)) delta mode) in
+      if re1 == false then (Node (showEntail ^ showRule RHSAND, [tree1] ),  false, states1, [])
+      else
+        (
+        (*print_string ("lallalallalalRHSAND \n");*)
+
+        let (tree2, re2, states2 , hypo1) = (containment1 normalFormL (Effect(piR, esR2)) (List.append delta (sublist (List.length delta) (List.length hypo -1 ) hypo)) mode) in
+        (Node (showEntail ^ showRule RHSAND, [tree1; tree2] ), re2, states1+states2, hypo1)
+        )
+
+
+  | (Effect (piL, esL),_) ->
+  
   if nullable lhs == true && nullable rhs==false then (false, Node (entail^ "   [DISPROVE]", []))
-  else if isBot lhs then (true, Node (entail^ "   [Bot-LHS]", []))
+  else 
+  
+  
+  if isBot lhs then (true, Node (entail^ "   [Bot-LHS]", []))
   else if isBot rhs then (false, Node (entail^ "   [Bot-RHS]", []))
   else if reoccur evn lhs rhs then (true, Node (entail^ "   [Reoccur]", []))
   else 
@@ -398,7 +445,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
 
 
 
-let check_containment lhs rhs : (bool * binary_tree ) = 
+let check_containment lhs rhs : (binary_tree *bool ) = 
   containment [] lhs rhs
   ;;
 
