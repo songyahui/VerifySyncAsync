@@ -20,7 +20,6 @@ type es = Bot
         | Choice of es * es
         | Ttimes of es * terms
         | Kleene of es
-        | Omega of es
         | Par of es * es 
         
 

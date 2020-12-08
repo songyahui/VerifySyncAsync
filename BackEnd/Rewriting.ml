@@ -8,6 +8,7 @@ open Pretty
 open Sys
 open Askz3
 
+
 let rec normalTerms (t:terms):terms  = 
   match t with 
     Minus (Minus(s, Number n1), Number n2) ->  Minus(s, Number (n1 + n2))
@@ -77,7 +78,6 @@ let rec compareES es1 es2 =
       let two =  ((compareES es1L es2R) && (compareES es1R es2L)) in 
       one || two
       *)
-  | (Omega esL, Omega esR) ->compareES esL esR
   | (Ttimes (esL, termL), Ttimes (esR, termR)) -> 
       let insideEq = (compareES esL esR) in
       let termEq = compareTerm termL termR in
@@ -171,7 +171,6 @@ let rec normalES (es:es) (pi:pure):es =
         (Emp, _) -> normalES2 
       | (_, Emp) -> normalES1
       | (Bot, _) -> Bot
-      | (Omega _, _ ) -> normalES1
 
       | (Kleene (esIn1), Kleene (esIn2)) -> 
           if aCompareES esIn1 esIn2 == true then normalES2
@@ -232,11 +231,7 @@ let rec normalES (es:es) (pi:pure):es =
             Number num -> concertive normalInside num 
           | _ -> Ttimes (normalInside, t))
         (*else if (existPi (Eq (terms, n)) allPi)) then Emp else Ttimes (normalInside, t))*)
-  | Omega es1 -> 
-      let normalInside = normalES es1 pi in 
-      (match normalInside with
-        Emp -> Emp
-      | _ ->  Omega normalInside)
+
   | Kleene es1 -> 
       let normalInside = normalES es1 pi in 
       (match normalInside with
@@ -296,6 +291,7 @@ let rec normalTerms (t:terms):terms  =
   | _ -> t 
   ;;
 
+
 let entailConstrains pi1 pi2 = 
 
   let sat = not (askZ3 (Neg (PureOr (Neg pi1, pi2)))) in
@@ -304,6 +300,7 @@ let entailConstrains pi1 pi2 =
   print_string (string_of_bool (sat) ^ "\n");
   *)
   sat;;
+
 
 let rec normalPure (pi:pure):pure = 
   let allPi = getAllPi pi [] in
@@ -322,6 +319,7 @@ let rec normalPure (pi:pure):pure =
   if length filte_true == 0 then  TRUE
   else connectPi (tl filte_true) (hd filte_true)
   ;;
+
 
 
 let rec normalEffect (eff:effect) : effect =
@@ -362,7 +360,7 @@ let rec normalEffect (eff:effect) : effect =
 
 
 let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tree * bool) = 
-  
+  (*
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion lhs rhs in 
@@ -373,94 +371,29 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tr
   | (Effect(_, Bot), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
   | (_, Effect(FALSE, _)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
   | (_, Effect(_, Bot)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
-  | _ -> (Node("containment", []), true)
-  (*
-  
-  | (Disj (effL1, effL2), _) -> 
-    (*[LHSOR]*)
-      let (tree1, re1, states1 , hypo ) = (containment1 effL1 effR delta mode) in
-      if re1 == false then (Node (showEntail ^ showRule LHSOR, [tree1] ),  false, states1, [])
-      else 
-        (
-        (*print_string ("lallalallalal\n");*)
-        let (tree2, re2 , states2, hypo1) = (containment1 effL2 effR (List.append delta (sublist (List.length delta) (List.length hypo -1 ) hypo)) mode) in
-        (Node (showEntail ^ showRule LHSOR, [tree1; tree2] ), re2, states1+states2, hypo1)
-        )
-
-  (****If worriy of comokenness, need to delete this part. *****)
-  | ( _, Disj (effL1, effL2)) -> 
-    (*[RHSOR]*)
-      let (tree1, re1, states1, hypo ) = (containment1 normalFormL effL1 delta mode) in
-      if re1 == true then (Node (showEntail ^ showRule RHSOR, [tree1] ),  true, states1, hypo)
-      else 
-        let (tree2, re2 , states2, hypo1) = (containment1 normalFormL effL2  delta mode) in 
-        (Node (showEntail ^ showRule RHSOR, [tree2] ), re2, states2, hypo1)
-    (****If worriy of comokenness, need to delete this part. *****)
-
-
-  | (Effect (piL, esL),Effect(piR, ESAnd (esR1, esR2))) ->
-      let (tree1, re1, states1, hypo ) = (containment1 normalFormL (Effect(piR, esR1)) delta mode) in
-      if re1 == false then (Node (showEntail ^ showRule RHSAND, [tree1] ),  false, states1, [])
-      else
-        (
-        (*print_string ("lallalallalalRHSAND \n");*)
-
-        let (tree2, re2, states2 , hypo1) = (containment1 normalFormL (Effect(piR, esR2)) (List.append delta (sublist (List.length delta) (List.length hypo -1 ) hypo)) mode) in
-        (Node (showEntail ^ showRule RHSAND, [tree1; tree2] ), re2, states1+states2, hypo1)
-        )
-
-
-  | (Effect (piL, esL),_) ->
-  
-  if nullable lhs == true && nullable rhs==false then (false, Node (entail^ "   [DISPROVE]", []))
-  else 
-  
-  
-  if isBot lhs then (true, Node (entail^ "   [Bot-LHS]", []))
-  else if isBot rhs then (false, Node (entail^ "   [Bot-RHS]", []))
-  else if reoccur evn lhs rhs then (true, Node (entail^ "   [Reoccur]", []))
-  else 
-  (*match lhs with 
-    Disj (lhs1, lhs2) -> 
-      let (re1, tree1) = containment evn lhs1 rhs in 
-      let (re2, tree2) = containment evn lhs2 rhs in 
-      (re1 && re2, Node (entail^ "   [LHS-DISJ]", [tree1; tree2]))
   | _ -> *)
-    let (fst:instance list) = getFst lhs in 
-    let newEvn = append [(lhs, rhs)] evn in 
-    let rec helper (acc:binary_tree list) (fst_list:instance list): (bool * binary_tree list) = 
-      (match fst_list with 
-        [] -> (true , acc) 
-      | a::xs -> 
-        let (result, (tree:binary_tree)) =  containment newEvn (derivative a lhs) (derivative a rhs) in 
-        if result == false then (false, (tree:: acc))
-        else helper (tree:: acc) xs 
-      )
-    in 
-    let (result, trees) =  helper [] fst in 
-    (result, Node (entail^ "   [UNFOLD]", trees))  
-    *)
+  
+  (Node("containment", []), true)
+ 
   ;;
 
 
 
 
-let check_containment lhs rhs : (binary_tree *bool ) = 
+let check_containment lhs rhs : (binary_tree *bool) = 
   containment [] lhs rhs
   ;;
 
 let printReport (lhs:effect) (rhs:effect) :string =
-  "printReport"
-(*
-  let entailment = (string_of_es (normalES lhs)) ^ " |- " ^ (string_of_es (normalES rhs)) (*and i = INC(lhs, rhs)*) in
 
+  let entailment = string_of_inclusion (normalEffect lhs) (normalEffect rhs) in 
   let startTimeStamp = Sys.time() in
-  let (re, tree) =  check_containment lhs rhs in
+  let (tree, re) =  check_containment lhs rhs in
   let verification_time = "[Verification Time: " ^ string_of_float (Sys.time() -. startTimeStamp) ^ " s]\n" in
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
   let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed\n" else "Fail\n")  ^verification_time^" \n\n"^ result)
   in buffur
-  *)
+  
   ;;
 
 (*

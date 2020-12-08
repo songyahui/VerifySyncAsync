@@ -65,7 +65,7 @@ rule token = parse
 
 | ">=" {GTEQ}
 | "<=" {LTEQ}
-| 'w' {OMEGA}
+
 | '(' { LPAR }
 | ')' { RPAR }
 | '{' { LBRACK  }
@@ -105,7 +105,7 @@ rule token = parse
 (*
 
 
-
+| 'w' {OMEGA}
 | "if" {IF}
 | "else" {ELSE}
 | "abort" {ABORT} 
