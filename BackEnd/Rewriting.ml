@@ -8,6 +8,32 @@ open Pretty
 open Sys
 open Askz3
 
+let rec fst (pi :pure) (es:es): (instance option * terms option) list = 
+  (*
+  let rec common (left:(string* int option) list) (right:(string*int option) list) (acc:(string*int option) list): (string*int option) list =
+    match left with 
+      [] -> acc 
+    | x :: xs -> 
+      let rec oneOF (ele:(string*int option )) (li:(string*int option) list):bool =
+        (match li with 
+          [] -> false 
+        | y::ys -> if compareEvent ele y then true else oneOF ele ys
+        )
+      in 
+      if oneOF x right then common xs right (append acc [x]) else common xs right acc
+  in 
+  *)
+  match es with
+    Bot -> []
+  | Emp -> []
+  | Instance ins ->  [(ins, None)]
+  | Ttimes (es1, t) -> fst pi es1
+  | Cons (es1 , es2) ->  if nullable pi es1 then append (fst pi es1) (fst pi es2) else fst pi es1
+  | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
+  | TimeUnit -> [(None, Number 1)]
+  | Kleene es1 -> fst pi es1
+  | Par (es1 , es2) ->  raise (Foo "par in ")
+;;
 
 let rec normalTerms (t:terms):terms  = 
   match t with 
@@ -358,12 +384,39 @@ let rec normalEffect (eff:effect) : effect =
   ;;
 
 
+let rec checkFst (eff:effect) : (instance option * terms option) list = 
+  match eff with
+    Effect (pi, es) -> fst pi es
+  | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
+ ;;
+
 
 let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tree * bool) = 
-  (*
+  
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion lhs rhs in 
+
+  let unfold eff1 eff2 del = 
+    let fstL = checkFst eff1 in 
+    let deltaNew = List.append [(eff1, eff2)] del  in
+
+    let rec chceckResultAND li acc staacc hypoacc:(bool *binary_tree list* int * hypotheses)=
+      (match li with 
+        [] -> (true, acc, staacc, hypoacc ) 
+      | ev::fs -> 
+          (*print_string ("\n"^string_of_Event ev^"\n\n");
+          *)
+          let deriL = checkDerivative eff1 ev varList in
+          let deriR = checkDerivative eff2 ev varList in
+          let (tree, re, states, hypo) =  containment1 deriL deriR hypoacc mode in 
+          if re == false then (false , tree::acc, staacc+states, [])
+          else chceckResultAND fs (tree::acc) (staacc+states)  (hypo)
+      )
+    in 
+    let (resultFinal, trees, states, hypy ) = chceckResultAND fstL [] 0 deltaNew in 
+    (Node (showEntail ^ "   [UNFOLD]",trees ), resultFinal, states+1, hypy)    
+  in
 
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
@@ -371,9 +424,10 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tr
   | (Effect(_, Bot), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
   | (_, Effect(FALSE, _)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
   | (_, Effect(_, Bot)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
-  | _ -> *)
+  | _ -> unfold normalFormL normalFormR evn 
   
-  (Node("containment", []), true)
+  
+ 
  
   ;;
 

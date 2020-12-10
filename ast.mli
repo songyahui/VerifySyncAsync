@@ -14,11 +14,11 @@ type terms = Var of name
 
 type es = Bot 
         | Emp 
-        | TimeUnit (*real time tick*)
+        | RealTime of terms (*real time tick*)
         | Instance of instance  (*logical tick*)
         | Cons of es * es
         | Choice of es * es
-        | Ttimes of es * terms
+     (* | Ttimes of es * terms *)
         | Kleene of es
         | Par of es * es 
         
