@@ -23,6 +23,11 @@ let rec fst (pi :pure) (es:es): fst list =
   | _ -> raise (Foo "not definde in fst")
 ;;
 
+let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
+  Effect(TRUE, Emp) 
+
+  ;;
+
 let rec normalTerms (t:terms):terms  = 
   match t with 
     Minus (Minus(s, Number n1), Number n2) ->  Minus(s, Number (n1 + n2))
@@ -387,8 +392,14 @@ let rec checkFst (eff:effect) : fst list =
   | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
  ;;
 
+let rec checkDerivative (eff:effect) (fst:fst) : effect = 
+  match eff with
+    Effect (pi, es) -> derivative pi es fst
+  | Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) 
+ ;;
 
-let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tree * bool) = 
+
+let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
   
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
@@ -398,29 +409,29 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tr
     let fstL = checkFst eff1 in 
     let deltaNew = List.append [(eff1, eff2)] del  in
 
-    let rec chceckResultAND li acc staacc hypoacc:(bool *binary_tree list* int * hypotheses)=
+    let rec chceckResultAND li acc hypoacc:(bool * binary_tree list * inclusion list)=
       (match li with 
-        [] -> (true, acc, staacc, hypoacc ) 
+        [] -> (true, acc, hypoacc ) 
       | ev::fs -> 
           (*print_string ("\n"^string_of_Event ev^"\n\n");
           *)
-          let deriL = checkDerivative eff1 ev varList in
-          let deriR = checkDerivative eff2 ev varList in
-          let (tree, re, states, hypo) =  containment1 deriL deriR hypoacc mode in 
-          if re == false then (false , tree::acc, staacc+states, [])
-          else chceckResultAND fs (tree::acc) (staacc+states)  (hypo)
+          let deriL = checkDerivative eff1 ev in
+          let deriR = checkDerivative eff2 ev in
+          let (re,tree,  hypo) =  containment hypoacc deriL deriR in 
+          if re == false then (false , tree::acc, [])
+          else chceckResultAND fs (tree::acc) hypo
       )
     in 
-    let (resultFinal, trees, states, hypy ) = chceckResultAND fstL [] 0 deltaNew in 
-    (Node (showEntail ^ "   [UNFOLD]",trees ), resultFinal, states+1, hypy)    
+    let (resultFinal, trees, hypy ) = chceckResultAND fstL [] deltaNew in 
+    (resultFinal, Node (showEntail ^ "   [UNFOLD]",trees ), hypy)    
   in
 
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
-    (Effect(FALSE, _), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
-  | (Effect(_, Bot), _) -> (Node(showEntail ^ "   [Bot-LHS]", []), true)  
-  | (_, Effect(FALSE, _)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
-  | (_, Effect(_, Bot)) -> (Node(showEntail ^ "   [DISPROVE]", []), false)  
+    (Effect(FALSE, _), _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
+  | (Effect(_, Bot), _) -> (true, Node(showEntail ^ "   [Bot-LHS]", []),  evn)  
+  | (_, Effect(FALSE, _)) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+  | (_, Effect(_, Bot)) -> (false,Node(showEntail ^ "   [DISPROVE]", []),  evn)  
   | _ -> unfold normalFormL normalFormR evn 
   
   
@@ -431,7 +442,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (binary_tr
 
 
 
-let check_containment lhs rhs : (binary_tree *bool) = 
+let check_containment lhs rhs : (bool * binary_tree *  inclusion list) = 
   containment [] lhs rhs
   ;;
 
@@ -439,7 +450,7 @@ let printReport (lhs:effect) (rhs:effect) :string =
 
   let entailment = string_of_inclusion (normalEffect lhs) (normalEffect rhs) in 
   let startTimeStamp = Sys.time() in
-  let (tree, re) =  check_containment lhs rhs in
+  let (re, tree, hypos) =  check_containment lhs rhs in
   let verification_time = "[Verification Time: " ^ string_of_float (Sys.time() -. startTimeStamp) ^ " s]\n" in
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
   let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed\n" else "Fail\n")  ^verification_time^" \n\n"^ result)
