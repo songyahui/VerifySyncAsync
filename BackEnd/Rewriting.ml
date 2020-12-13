@@ -90,9 +90,10 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   | Emp -> Effect (FALSE, Bot)
   | Instance ins ->  
       (match fst with 
-        (Instance ins1, None) -> 
+        (Instance ins1, _) -> 
           if instansEntails ins1 ins then Effect (pi, Emp) 
           else Effect (FALSE, Bot)
+      
       |_ -> Effect (FALSE, Bot)
       )
   | Ttimes (es1, t) -> 
