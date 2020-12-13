@@ -69,7 +69,12 @@ term:
 
 | LPAR a = term PLUS b = term RPAR {Plus (a, b)}
 
-
+realtime:
+| EQ a = INTE {EqConst a}
+| GT a = INTE {Greater a}
+| LT a = INTE {LessThan a}
+| a = realtime CONJ b = realtime {RTAnd (a, b)}
+| a = realtime DISJ b = realtime {RTOr (a, b)}
 
 pure:
 | TRUE {TRUE}
@@ -94,10 +99,10 @@ es:
   Instance (signals) }
   
 | LPAR r = es RPAR { r }
-
+| b = realtime {RealTime b }
 | a = es CONCAT b = es { Cons(a, b) } 
 | a = es DISJ b = es { Choice(a, b) } 
-
+| a = es PAR b = es {Par (a, b )}
 | LPAR a = es RPAR POWER KLEENE {Kleene a}
 | LPAR r = es RPAR n = term { Ttimes (r,  n) }
 

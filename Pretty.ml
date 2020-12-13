@@ -12,14 +12,7 @@ open Askz3
 
 exception Foo of string
 
-let entailConstrains pi1 pi2 = 
 
-  let sat = not (askZ3 (Neg (PureOr (Neg pi1, pi2)))) in
-  (*
-  print_string (showPure pi1 ^" -> " ^ showPure pi2 ^" == ");
-  print_string (string_of_bool (sat) ^ "\n");
-  *)
-  sat;;
 
 
 (*used to generate the free veriables, for subsititution*)
@@ -216,6 +209,15 @@ let rec string_of_pure (p:pure):string =
   | Neg p -> "(!" ^ "(" ^ string_of_pure p^"))"
   ;; 
 
+let entailConstrains pi1 pi2 = 
+
+  let sat = not (askZ3 (Neg (PureOr (Neg pi1, pi2)))) in
+  (*
+  print_string (string_of_pure pi1 ^" -> " ^ string_of_pure pi2 ^" == ");
+  print_string (string_of_bool (sat) ^ "\n");
+  *)
+  sat;;
+
 let rec string_of_effect(eff:effect): string = 
   match eff with 
     Effect (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
@@ -308,7 +310,7 @@ let rec nullable (pi :pure) (es:es) : bool=
   | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   | Kleene _ -> true  
   | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
-  | RealTime rt -> askZ3 (realtimeToPure rt )
+  | RealTime rt ->   askZ3 (realtimeToPure rt )
   | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
   | Par (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   ;;
@@ -564,6 +566,7 @@ let rec normalES (es:es) (pi:pure):es =
       | _ ->  Kleene normalInside)
 
 
+  | Par (es1, es2) -> Par (es1, es2)
    ;;
 
 let rec compareTerm (term1:terms) (term2:terms) : bool = 
@@ -615,14 +618,6 @@ let rec normalTerms (t:terms):terms  =
   ;;
 
 
-let entailConstrains pi1 pi2 = 
-
-  let sat = not (askZ3 (Neg (PureOr (Neg pi1, pi2)))) in
-  (*
-  print_string (showPure pi1 ^" -> " ^ showPure pi2 ^" == ");
-  print_string (string_of_bool (sat) ^ "\n");
-  *)
-  sat;;
 
 
 let rec normalPure (pi:pure):pure = 

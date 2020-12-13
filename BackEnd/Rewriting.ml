@@ -84,7 +84,6 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion normalFormL normalFormR in 
-
   let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
   match es with
     Bot -> Effect (FALSE, Bot)
@@ -118,7 +117,6 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
         (Emp, Some rt1) -> 
           let rtpure = realtimeToPure rt in 
           let rt1pure = realtimeToPure rt1 in 
-
           if entailConstrains rt1pure rtpure then Effect (pi, Emp) 
           else Effect (FALSE, Bot)
       |_ -> Effect (FALSE, Bot)
@@ -175,7 +173,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   in
   
   if ((nullableEffect normalFormL == true) && (nullableEffect normalFormR == false ))  then 
-      (false, Node (showEntail ^ "   [BULLABLE]", []), evn)  
+      (false, Node (showEntail ^ "   [NULLABLE]", []), evn)  
   else if reoccur evn normalFormL normalFormR then
       (
       print_string (List.fold_left (fun acc (a1, a2) -> acc ^ string_of_inclusion a1 a2) "" evn);
