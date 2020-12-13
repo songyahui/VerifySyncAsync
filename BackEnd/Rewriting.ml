@@ -49,7 +49,26 @@ let ifShouldDisj (temp1:effect) (temp2:effect) : effect =
       Disj (temp1, temp2 )
   ;;
 
-let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
+
+
+
+
+let rec checkFst (eff:effect) : fst list = 
+  match eff with
+    Effect (pi, es) -> fst pi es
+  | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
+ ;;
+
+
+
+
+let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
+  
+  let normalFormL = normalEffect lhs in 
+  let normalFormR = normalEffect rhs in 
+  let showEntail = string_of_inclusion lhs rhs in 
+
+  let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
   match es with
     Bot -> Effect (FALSE, Bot)
   | Emp -> Effect (FALSE, Bot)
@@ -77,35 +96,45 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       let temp1 =  (derivative pi es1 fst) in
       let temp2 =  (derivative pi es2 fst) in 
       normalEffect (ifShouldDisj temp1 temp2)
-  | RealTime rt -> [(Emp, Some rt)]
-  | Kleene es1 -> fst pi es1
-  | Par (es1 , RealTime rt) -> [(es1, Some rt)]
-  | Par (RealTime rt, es1) -> [(es1, Some rt)]
+  | RealTime rt -> 
+    (match fst with 
+        (Emp, Some rt1) -> 
+          let rtpure = realtimeToPure rt in 
+          let rt1pure = realtimeToPure rt1 in 
 
-  ;;
+          if entailConstrains rt1pure rtpure then Effect (pi, Emp) 
+          else Effect (FALSE, Bot)
+      |_ -> Effect (FALSE, Bot)
+      )
+  | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
+  | Par (es1 , RealTime rt) -> 
+    (match fst with 
+      (esfst, Some rt1) -> 
+        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
+        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
+        if (re1 && re2) then Effect (pi, Emp) 
+        else Effect (FALSE, Bot)
+    | _ -> Effect (FALSE, Bot)
 
+    )
+  | Par (RealTime rt, es1) -> 
+    (match fst with 
+      (esfst, Some rt1) -> 
+        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
+        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
+        if (re1 && re2) then Effect (pi, Emp) 
+        else Effect (FALSE, Bot)
+    | _ -> Effect (FALSE, Bot)
 
+    )
 
+  in 
 
-
-let rec checkFst (eff:effect) : fst list = 
-  match eff with
-    Effect (pi, es) -> fst pi es
-  | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
- ;;
-
-let rec checkDerivative (eff:effect) (fst:fst) : effect = 
-  match eff with
-    Effect (pi, es) -> derivative pi es fst
-  | Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) 
- ;;
-
-
-let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
-  
-  let normalFormL = normalEffect lhs in 
-  let normalFormR = normalEffect rhs in 
-  let showEntail = string_of_inclusion lhs rhs in 
+  let rec checkDerivative (eff:effect) (fst:fst) : effect = 
+    match eff with
+      Effect (pi, es) -> derivative pi es fst
+    | Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) 
+  in 
 
   let unfold eff1 eff2 del = 
     let fstL = checkFst eff1 in 

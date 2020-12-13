@@ -248,6 +248,9 @@ let compareSignal (s1 :signal * int option) (s2:signal * int option) : bool =
   match (s1, s2) with 
     ((One n1, Some n11), (One n2, Some n22)) -> String.compare n1 n2 == 0 && n11 == n22
   | ((Zero n1, Some n11) , (Zero n2, Some n22) ) -> String.compare n1 n2 == 0 && n11 == n22
+  | ((One n1, None), (One n2, None)) -> String.compare n1 n2 == 0 
+  | ((Zero n1, None) , (Zero n2, None) ) -> String.compare n1 n2 == 0 
+
   | _ -> false 
   ;;
 
