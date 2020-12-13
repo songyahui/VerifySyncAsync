@@ -150,9 +150,9 @@ let rec showLTL (ltl:ltl):string =
 
 let string_of_state (state :signal):string = 
   match state with 
-    One name -> name ^","
-  | Zero name -> "!"^name ^"," 
-  | Wait name -> "?"^name ^",";;
+    One name -> name ^";"
+  | Zero name -> "!"^name ^";" 
+  | Wait name -> "?"^name ^";";;
 
 
 let string_of_sl (sl: instance):string = 
@@ -356,8 +356,17 @@ let rec aCompareES es1 es2 =
       else ((aCompareES es1L es2R) && (aCompareES es1R es2L))
 *)
   | (Kleene esL, Kleene esR) -> aCompareES esL esR
-  (*| _ -> false*)
+  | _ -> false
 ;;
+
+let instansEntails (ins1:instance) (ins2:instance) :bool = 
+  let rec aux instemp = 
+    match instemp with 
+      [] -> true 
+    | x::xs -> if oneOf x ins1 then aux xs else false 
+  in aux ins2
+
+  ;;
 
 let rec compareRealTime rt1 rt2 = 
   match (rt1, rt2) with 
@@ -382,9 +391,9 @@ let rec compareES es1 es2 =
   match (es1, es2) with 
     (Bot, Bot) -> true
   | (Emp, Emp) -> true
-  (*| (Event (s1,p1), Event (s2,p2)) -> 
-    compareEvent (s1,p1) (s2,p2)
-    *)
+  | (Instance ins1, Instance ins2) -> 
+    instansEntails ins1 ins2
+    
   | (Cons (es1L, es1R), Cons (es2L, es2R)) -> (compareES es1L es2L) && (compareES es1R es2R)
   (*| (ESOr (es1L, es1R), ESOr (es2L, es2R)) -> 
       let one = ((compareES es1L es2L) && (compareES es1R es2R)) in

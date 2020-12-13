@@ -94,7 +94,10 @@ es:
   Instance (signals) }
   
 | LPAR r = es RPAR { r }
+
 | a = es CONCAT b = es { Cons(a, b) } 
+| a = es DISJ b = es { Choice(a, b) } 
+
 | LPAR a = es RPAR POWER KLEENE {Kleene a}
 | LPAR r = es RPAR n = term { Ttimes (r,  n) }
 

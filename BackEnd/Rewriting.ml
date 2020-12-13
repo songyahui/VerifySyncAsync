@@ -23,14 +23,7 @@ let rec fst (pi :pure) (es:es): fst list =
   | _ -> raise (Foo "not definde in fst")
 ;;
 
-let instansEntails (ins1:instance) (ins2:instance) :bool = 
-  let rec aux instemp = 
-    match instemp with 
-      [] -> true 
-    | x::xs -> if oneOf x ins2 then aux xs else false 
-  in aux ins1
 
-  ;;
 
 let rec appendEff_ES eff es = 
   match eff with 
@@ -59,14 +52,38 @@ let rec checkFst (eff:effect) : fst list =
   | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
  ;;
 
+let rec nullableEffect (eff:effect) : bool = 
+  match eff with 
+    Effect (pi, es) -> nullable pi es
+  | Disj (eff1, eff2) -> (nullableEffect eff1) || (nullableEffect eff2) 
+ ;;
 
+let rec entailEffects (eff1:effect) (eff2:effect) : bool = 
+  match (eff1, eff2) with 
+    (Effect (p1, es1), Effect (p2, es2)) -> 
+      if comparePure p1 p2 && compareES es1 es2 then true 
+      else false 
+  | (Disj (f1, f2), Disj (f3, f4)) -> 
+  (entailEffects f1 f3 && entailEffects f2 f4) || (entailEffects f2 f3 && entailEffects f1 f4)
+  | _ -> false 
+;;
+
+let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool = 
+  let rec aux inclusions = 
+    match inclusions with 
+      [] -> false 
+    | (lhs1, rhs2)::xs -> 
+      if entailEffects lhs lhs1  && entailEffects rhs2 rhs then true
+      else aux xs 
+  in aux evn
+  ;;
 
 
 let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
   
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
-  let showEntail = string_of_inclusion lhs rhs in 
+  let showEntail = string_of_inclusion normalFormL normalFormR in 
 
   let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
   match es with
@@ -156,14 +173,24 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
     let (resultFinal, trees, hypy ) = chceckResultAND fstL [] deltaNew in 
     (resultFinal, Node (showEntail ^ "   [UNFOLD]",trees ), hypy)    
   in
-
+  
+  if ((nullableEffect normalFormL == true) && (nullableEffect normalFormR == false ))  then 
+      (false, Node (showEntail ^ "   [BULLABLE]", []), evn)  
+  else if reoccur evn normalFormL normalFormR then
+      (
+      print_string (List.fold_left (fun acc (a1, a2) -> acc ^ string_of_inclusion a1 a2) "" evn);
+      (true, Node (showEntail ^ "   [REOCCUR]", []), evn)  
+      )
+  else 
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
     (Effect(FALSE, _), _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
   | (Effect(_, Bot), _) -> (true, Node(showEntail ^ "   [Bot-LHS]", []),  evn)  
   | (_, Effect(FALSE, _)) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
   | (_, Effect(_, Bot)) -> (false,Node(showEntail ^ "   [DISPROVE]", []),  evn)  
-  | _ -> unfold normalFormL normalFormR evn 
+  | _ -> 
+  
+  unfold normalFormL normalFormR evn 
   
   
  
