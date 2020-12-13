@@ -17,7 +17,7 @@ ocamlc -c -o sleek.cmo  BackEnd/sleek.ml
 
 #ocamlc -c -o LTL_Traslator.cmo  LTL_Traslator.ml
 
-ocamlc -o hip parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo Forward.cmo
+#ocamlc -o hip parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo Forward.cmo
 
 ocamlc -o sleek parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo sleek.cmo
 

@@ -8,31 +8,19 @@ open Pretty
 open Sys
 open Askz3
 
-let rec fst (pi :pure) (es:es): (instance option * terms option) list = 
-  (*
-  let rec common (left:(string* int option) list) (right:(string*int option) list) (acc:(string*int option) list): (string*int option) list =
-    match left with 
-      [] -> acc 
-    | x :: xs -> 
-      let rec oneOF (ele:(string*int option )) (li:(string*int option) list):bool =
-        (match li with 
-          [] -> false 
-        | y::ys -> if compareEvent ele y then true else oneOF ele ys
-        )
-      in 
-      if oneOF x right then common xs right (append acc [x]) else common xs right acc
-  in 
-  *)
+let rec fst (pi :pure) (es:es): fst list = 
   match es with
     Bot -> []
   | Emp -> []
-  | Instance ins ->  [(ins, None)]
+  | Instance ins ->  [(Instance ins, None)]
   | Ttimes (es1, t) -> fst pi es1
   | Cons (es1 , es2) ->  if nullable pi es1 then append (fst pi es1) (fst pi es2) else fst pi es1
   | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
-  | TimeUnit -> [(None, Number 1)]
+  | RealTime rt -> [(Emp, Some rt)]
   | Kleene es1 -> fst pi es1
-  | Par (es1 , es2) ->  raise (Foo "par in ")
+  | Par (es1 , RealTime rt) -> [(es1, Some rt)]
+  | Par (RealTime rt, es1) -> [(es1, Some rt)]
+  | _ -> raise (Foo "not definde in fst")
 ;;
 
 let rec normalTerms (t:terms):terms  = 
@@ -81,6 +69,15 @@ let rec aCompareES es1 es2 =
   (*| _ -> false*)
 ;;
 
+let rec compareRealTime rt1 rt2 = 
+  match (rt1, rt2) with 
+    (EqConst n1, EqConst n2) -> n1 == n2
+  | (Greater n1, Greater n2) -> n1 == n2
+  | (LessThan n1, LessThan n2) -> n1 == n2
+
+  | _ -> raise (Foo "not yet defined compareRealTime")
+  ;;
+
 let rec compareES es1 es2 = 
   let rec subESsetOf (small : es list) (big : es list) :bool = 
     let rec oneOf a set :bool = 
@@ -109,8 +106,8 @@ let rec compareES es1 es2 =
       let termEq = compareTerm termL termR in
       insideEq && termEq
   | (Kleene esL, Kleene esR) -> compareES esL esR
-  | (TimeUnit, TimeUnit ) -> true
-  (*| _ -> false*)
+  | (RealTime rt1, RealTime rt2 ) -> compareRealTime rt1 rt2
+  | _ -> false
 ;;
 
 let rec compareEff eff1 eff2 =
@@ -188,7 +185,7 @@ let rec normalES (es:es) (pi:pure):es =
     Bot -> es
   | Emp -> es
   | Instance ins -> Instance ins  (*logical tick*)
-  | TimeUnit -> TimeUnit
+  | RealTime rt -> RealTime rt
   | Cons (Cons (esIn1, esIn2), es2)-> normalES (Cons (esIn1, Cons (esIn2, es2))) pi
   | Cons (es1, es2) -> 
       let normalES1 = normalES es1 pi in
@@ -384,7 +381,7 @@ let rec normalEffect (eff:effect) : effect =
   ;;
 
 
-let rec checkFst (eff:effect) : (instance option * terms option) list = 
+let rec checkFst (eff:effect) : fst list = 
   match eff with
     Effect (pi, es) -> fst pi es
   | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 

@@ -179,6 +179,14 @@ let rec string_of_terms (t:terms):string =
   | Minus (t1, t2) -> (string_of_terms t1) ^ ("-") ^ (string_of_terms t2)
 
   ;;
+let rec string_of_realtime (rt:realtime):string = 
+  match rt with 
+    EqConst n -> "=" ^ string_of_int n 
+  | Greater n -> ">" ^ string_of_int n 
+  | LessThan n -> "<" ^ string_of_int n 
+  | RTAnd (rt1, rt2) -> string_of_realtime rt1 ^ "/\\" ^ string_of_realtime rt2
+  | RTOr (rt1, rt2) -> string_of_realtime rt1 ^ "\\/" ^ string_of_realtime rt2
+;;
 
 let rec string_of_es (es:es) :string = 
   match es with 
@@ -188,7 +196,7 @@ let rec string_of_es (es:es) :string =
   | Cons (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
   | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
-  | TimeUnit -> "t_unit"
+  | RealTime rt-> string_of_realtime rt
   | Choice (es1, es2) -> "("^string_of_es es1 ^ " + " ^ string_of_es es2^")"
   | Par (es1, es2) -> "("^string_of_es es1 ^ " || " ^ string_of_es es2^")"
   ;;
@@ -280,7 +288,14 @@ let rec deleteRedundent sl : signal list =
 
   ;;
 
-  
+let rec realtimeToPure (rt:realtime) :pure = 
+  match rt with 
+    EqConst n -> Eq (Var "n", Number n )
+  | Greater n -> Gt (Var "n", Number n )
+  | LessThan n -> Lt (Var "n", Number n )
+  | RTAnd (rt1, rt2) -> PureAnd (realtimeToPure rt1, realtimeToPure rt2)
+  | RTOr (rt1, rt2) -> PureOr (realtimeToPure rt1, realtimeToPure rt2)
+;;
 
 let rec nullable (pi :pure) (es:es) : bool=
   match es with 
@@ -290,7 +305,7 @@ let rec nullable (pi :pure) (es:es) : bool=
   | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   | Kleene _ -> true  
   | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
-  | TimeUnit -> false 
+  | RealTime rt -> askZ3 (realtimeToPure rt )
   | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
   | Par (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   ;;

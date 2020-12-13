@@ -7,21 +7,31 @@ type signal = One of name | Zero of name | Wait of name
 (*signal set*)
 type instance = (signal * int option) list ;;
 
+
 type terms = Var of name
            | Number of int
            | Plus of terms * terms
            | Minus of terms * terms
 
+type realtime = 
+             EqConst of int 
+           | Greater of int
+           | LessThan of int
+           | RTAnd of realtime * realtime
+           | RTOr  of realtime * realtime
+
+
 type es = Bot 
         | Emp 
-        | RealTime of terms (*real time tick*)
+        | RealTime of realtime (*real time tick*)
         | Instance of instance  (*logical tick*)
         | Cons of es * es
         | Choice of es * es
-     (* | Ttimes of es * terms *)
+        | Ttimes of es * terms
         | Kleene of es
         | Par of es * es 
         
+type fst = es * (realtime option )
 
 (*Arithimetic pure formulae*)
 type pure = TRUE

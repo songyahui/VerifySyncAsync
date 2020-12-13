@@ -22,3 +22,13 @@ sudo apt-get install menhir
 sudo apt-get install z3
 ```
 
+{A, B , C} /\ {B, C} |- {A}
+
+{A} |- {A, B , C} /\ {B, C}
+{A} |- {B} -> false
+
+emp |- 
+-------------------------------------------
+{A}  |- {A} || O  and O  |- {A} || O
+-----------------------------
+{A} || O  |- {A} || O  true  
