@@ -1,0 +1,21 @@
+
+
+TRUE /\ {A, B} |- TRUE /\ {A}.{B} \/ {A, B} ;
+
+TRUE /\ {A}.{B} |- TRUE /\ {A}.{B} \/ {A, B} ;
+
+TRUE /\ {A}.{B} \/ {A, B}  |- TRUE /\ {A}.{B} \/ {A, B} ;
+
+TRUE /\ {A}.{B}.{C, B} |- TRUE /\ {A}.{B} \/ {A, B} ;
+
+TRUE /\ {A, D}.{B, D} \/ {A, D}.{B, D} |- TRUE /\ {D, A}.{D, B};
+
+TRUE /\ {A, C}.{A} |- TRUE /\ {A}.{A}.{C} \/ {A, C}.{A};
+
+TRUE /\ {A}.{A}.{A} \/ {A, D}.{B, D} |- TRUE /\ {A}.{A}.{A};
+
+TRUE /\ {B, D}.{A, D} \/ ({A, D}.{B, D}) |- TRUE /\ {A}.{B} \/ ({A, D}.{B, D}) \/  ({B}.{D});
+
+TRUE /\ {C} \/ {A, B, C}.{B, C, D}.{C, D, E} |- TRUE /\ {C} \/ {A, B, C}.{B, C, D}.{C, D, E};
+
+TRUE /\ ({A, B}.{C, D}) \/({D, C}.{B, A}) \/ ({A, B}.{C, D}) \/({D, C}.{B, A})   |- TRUE /\ ({A, B}.{C, D}) \/({D, C}.{B, A}) \/ ({A, B}.{C, D}) \/({D, C}.{B, A});
