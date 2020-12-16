@@ -498,13 +498,15 @@ let rec append_es_to_effect es eff : effect =
     Effect (p , es1) -> Effect (p, Cons(es1, es))
   | Disj (eff1, eff2) -> Disj (append_es_to_effect es eff1, append_es_to_effect es eff2)
   ;;
+  
 
 
-let rec forward (evn: instance) (current:effect) (prog:prog) (full: spec_prog list): effect =
+let rec forward (evn: instance) (his:effect) (current:instance) (prog:prog) (full: spec_prog list): (effect * instance) =
   match prog with 
-    Halt -> current
-  | Yield -> append_es_to_effect (Instance evn) current 
-  | _ -> current
+    Halt -> (his, current)
+  | Yield -> (append_es_to_effect (Instance current) his, []) 
+  | Emit (s, arg) -> (his, append current [(One s, arg)])
+  | _ -> (his, current)
   (*
   | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
 
@@ -515,12 +517,7 @@ let rec forward (evn: instance) (current:effect) (prog:prog) (full: spec_prog li
   | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
-  | Emit (s, arg) -> "emit " ^ s ^ 
-  (
-    match arg with 
-      None -> ""
-    | Some (n) -> "(" ^ string_of_int n ^")"
-  ) 
+   
   | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 
@@ -531,11 +528,18 @@ let rec forward (evn: instance) (current:effect) (prog:prog) (full: spec_prog li
   *)
   ;;
 
+let rec append_instance_to_effect (eff:effect) (ins:instance) : effect = 
+  match eff with 
+    Effect (pi, es) -> Effect (pi, Cons (es, Instance ins))
+  | Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)
+  ;;
+
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let final = forward inp_sig pre prog full in 
+  let (his, current) = forward inp_sig pre ([]) prog full in 
+  let (final:effect) = normalEffect (append_instance_to_effect his current) in 
   string_of_spec_prog spec_prog ^ "\n" ^string_of_effect final 
   (*
   

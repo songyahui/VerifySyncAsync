@@ -58,6 +58,7 @@ rule token = parse
 | "FALSE" { FALSE }
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
+| "count" { COUNT }
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 | '>' {GT}

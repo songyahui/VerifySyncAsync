@@ -104,6 +104,55 @@ let rec string_of_action (act:action) : string =
   | Timeout n -> "time out " ^ string_of_int n  
   | NoneAct -> "NoneAct";;
 
+let string_of_state (state :signal):string = 
+  match state with 
+    One name -> name 
+  | Zero name -> "!"^name 
+  | Wait name -> "?"^name ;;
+
+
+let string_of_sl (sl: instance):string = 
+  List.fold_left (fun acc (sig_, n) -> 
+  acc ^ "" ^ 
+  string_of_state sig_ ^ (
+    match n with 
+      None -> ";"
+    | Some n -> "(" ^ string_of_int n ^");"
+  )
+  ) "" sl
+;;
+
+let string_of_instance (mapping:instance) :string = 
+  let temp1 = "{" ^ string_of_sl mapping ^ "}" in 
+  temp1
+  ;;
+
+let rec string_of_terms (t:terms):string = 
+  match t with
+    Var name -> name
+  | Number n -> string_of_int n
+  | Plus (t1, t2) -> (string_of_terms t1) ^ ("+") ^ (string_of_terms t2)
+  | Minus (t1, t2) -> (string_of_terms t1) ^ ("-") ^ (string_of_terms t2)
+
+  ;;
+
+let string_of_promise (pro:promise) : string = 
+  match pro with 
+    Sing (s, arg) -> 
+    (
+    match arg with 
+      None -> ""
+    | Some (n) -> "(" ^ string_of_int n ^")"
+    )
+  | Count (t, (s, arg)) ->
+    "count("^string_of_terms t ^ ", "^
+    (
+    match arg with 
+      None -> ""
+    | Some (n) -> "(" ^ string_of_int n ^")"
+    ) 
+;;
+
 
 let rec string_of_prog (p : prog) : string =
   match p with
@@ -125,7 +174,7 @@ let rec string_of_prog (p : prog) : string =
   | Run mn -> "run " ^ mn
   | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
   | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
-  | Await (mn) -> "await "^ mn 
+  | Await (pro) -> "await "^ string_of_promise pro 
   ;;
 
 let rec showLTL (ltl:ltl):string =
@@ -141,37 +190,9 @@ let rec showLTL (ltl:ltl):string =
   | OrLTL (l1, l2) -> "(" ^showLTL l1 ^ " || " ^showLTL l2 ^")"
   ;;
 
-let string_of_state (state :signal):string = 
-  match state with 
-    One name -> name ^";"
-  | Zero name -> "!"^name ^";" 
-  | Wait name -> "?"^name ^";";;
 
 
-let string_of_sl (sl: instance):string = 
-  List.fold_left (fun acc (sig_, n) -> 
-  acc ^ "" ^ 
-  string_of_state sig_ ^ (
-    match n with 
-      None -> ""
-    | Some n -> "(" ^ string_of_int n ^")"
-  )
-  ) "" sl
-;;
 
-let string_of_instance (mapping:instance) :string = 
-  let temp1 = "{" ^ string_of_sl mapping ^ "}" in 
-  temp1
-  ;;
-
-let rec string_of_terms (t:terms):string = 
-  match t with
-    Var name -> name
-  | Number n -> string_of_int n
-  | Plus (t1, t2) -> (string_of_terms t1) ^ ("+") ^ (string_of_terms t2)
-  | Minus (t1, t2) -> (string_of_terms t1) ^ ("-") ^ (string_of_terms t2)
-
-  ;;
 let rec string_of_realtime (rt:realtime):string = 
   match rt with 
     EqConst n -> "=" ^ string_of_int n 

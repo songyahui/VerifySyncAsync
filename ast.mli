@@ -57,6 +57,8 @@ type inclusion_sleek = effect * effect * bool;;    (*the bool is the expected re
 
 type action = Delay of int | Timeout of int | NoneAct
 
+type promise = Sing of name * int option | Count of terms * (name * int option)
+
 type prog = Halt 
           | Yield 
           | Seq of prog * prog 
@@ -71,7 +73,7 @@ type prog = Halt
           | Suspend of prog * name 
 (*Esterel SYNC*)
           | Async of name * prog * action  (*set a timeout*)
-          | Await of name 
+          | Await of promise 
 (*JS ASYNC*)
 
 

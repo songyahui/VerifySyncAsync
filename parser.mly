@@ -6,7 +6,7 @@
 %token <int> INTE
 %token <bool> TRUEE FALSEE 
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
-%token AWAIT ASYNC SUSPEND COLON
+%token AWAIT ASYNC SUSPEND COLON COUNT
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
@@ -127,6 +127,13 @@ expectation:
 entailment:
 | lhs = effect   ENTIL   rhs = effect COLON re = expectation { (lhs, rhs, re)} 
 
+promise:
+| s = VAR {Sing(s, None)}
+| s = VAR  LPAR n =  INTE RPAR {Sing (s, Some n)}
+| COUNT LPAR t= term COMMA s = VAR RPAR {Count (t, (s, None))}
+| COUNT LPAR t= term COMMA s = VAR LPAR n =  INTE RPAR RPAR {Count (t, (s, Some n))}
+
+
 pRog_aux:
 | {Halt}
 | NOTHING { Halt }
@@ -143,7 +150,7 @@ pRog_aux:
 (*| EXIT mn = VAR d = INTE  {Exit (mn, d)}*)
 | RUN mn = VAR {Run mn}
 | ABORT p = pRog  WHEN s = VAR {Suspend (p, s)}
-| AWAIT mn = VAR {Await mn}
+| AWAIT mn = promise {Await mn}
 | SUSPEND p = pRog WHEN mn = VAR {Suspend(p, mn)}
 | ASYNC mn = VAR  LBRACK p = pRog RBRACK {Async(mn, p, NoneAct)}
 
