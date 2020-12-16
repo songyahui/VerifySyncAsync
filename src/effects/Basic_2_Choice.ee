@@ -19,3 +19,33 @@ TRUE /\ {B, D}.{A, D} \/ ({A, D}.{B, D}) |- TRUE /\ {A}.{B} \/ ({A, D}.{B, D}) \
 TRUE /\ {C} \/ {A, B, C}.{B, C, D}.{C, D, E} |- TRUE /\ {C} \/ {A, B, C}.{B, C, D}.{C, D, E};
 
 TRUE /\ ({A, B}.{C, D}) \/({D, C}.{B, A}) \/ ({A, B}.{C, D}) \/({D, C}.{B, A})   |- TRUE /\ ({A, B}.{C, D}) \/({D, C}.{B, A}) \/ ({A, B}.{C, D}) \/({D, C}.{B, A});
+
+TRUE /\ {A, B} \/ {C} \/ {B, D} |- TRUE /\ {A, D} \/ {B};
+
+TRUE /\ {A, B} \/ {C} \/ {B, D} |- TRUE /\ {A, D} \/ {B} \/ {C};
+
+TRUE /\ {A, C} \/ ({B, D})^* |- TRUE /\ ({})^* \/ {A};
+
+TRUE /\ {D, B} \/ {A, B}.{C, D} |- TRUE /\ {A}.{C} \/ {B};
+
+TRUE /\ {A, B} \/ {C, D} \/ {E} |- TRUE /\ {B} \/ ({})^*;
+
+TRUE /\ {A} |- TRUE /\ {A, B} \/ {B, C};
+
+TRUE /\ {A, B} |- TRUE /\ {A} \/ {B, C};
+
+TRUE /\ ({A, B})^* |- TRUE /\ {A, B} \/ {B, C};
+
+TRUE /\ ({B, C})^* |- TRUE /\ {B} \/ {C};
+
+TRUE /\ {A, B}.{C, D} |- TRUE /\ {A, B} \/ {C, D};
+
+TRUE /\ {A} \/ {B} |- TRUE /\ {A, B};
+
+TRUE /\ {A, B} \/ {C, D} |- TRUE /\ {B, C};
+
+TRUE /\ {A, B} \/ {B, C} |- TRUE /\ {B};
+
+TRUE /\ {A, B} \/ {B, C} \/ {C, A} |- TRUE /\ ({B})^*;
+
+TRUE /\ {B, C} \/ {C, D} |- TRUE /\ {B}.({C})^*;
