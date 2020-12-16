@@ -203,14 +203,15 @@ let check_containment lhs rhs : (bool * binary_tree *  inclusion list) =
   containment [] lhs rhs
   ;;
 
-let printReport (lhs:effect) (rhs:effect) :string =
+let printReport (lhs:effect) (rhs:effect) (expectation:bool):string =
 
   let entailment = string_of_inclusion (normalEffect lhs) (normalEffect rhs) in 
   let startTimeStamp = Sys.time() in
   let (re, tree, hypos) =  check_containment lhs rhs in
   let verification_time = "[Verification Time: " ^ string_of_float (Sys.time() -. startTimeStamp) ^ " s]\n" in
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
-  let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed\n" else "Fail\n")  ^verification_time^" \n\n"^ result)
+  let correct = if (expectation ==re) then "[Correct]" else "[Incorrect]" in 
+  let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed     " else "Fail     ")^ ( correct) ^"\n"  ^verification_time^" \n\n"^ result)
   in buffur
   
   ;;

@@ -50,7 +50,10 @@ type effect =
           | Disj of effect * effect
 
 
-type inclusion = effect * effect;;    
+type inclusion = effect * effect;;
+
+type inclusion_sleek = effect * effect * bool;;    (*the bool is the expected result*) 
+
 
 type action = Delay of int | Timeout of int | NoneAct
 

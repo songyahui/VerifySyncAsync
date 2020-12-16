@@ -4,8 +4,9 @@
 
 %token <string> VAR
 %token <int> INTE
+%token <bool> TRUEE FALSEE 
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
-%token AWAIT ASYNC SUSPEND 
+%token AWAIT ASYNC SUSPEND COLON
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
@@ -19,7 +20,7 @@
 %type <(Ast.spec_prog) list> full_prog
 %type <Ast.spec_prog> specProg
 %type <Ast.prog> pRog
-%type <(Ast.inclusion) list > ee
+%type <(Ast.inclusion_sleek) list > ee
 %type <(Ast.ltl) list > ltl_p
 
 
@@ -119,9 +120,12 @@ effect:
   in 
   helper eff}
 
+expectation:
+| a = TRUEE {true}
+| a = FALSEE {false}
 
 entailment:
-| lhs = effect   ENTIL   rhs = effect { (lhs, rhs)}
+| lhs = effect   ENTIL   rhs = effect COLON re = expectation { (lhs, rhs, re)} 
 
 pRog_aux:
 | {Halt}

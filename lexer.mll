@@ -56,6 +56,8 @@ rule token = parse
 | "else" {ELSE}
 | "TRUE" { TRUE }
 | "FALSE" { FALSE }
+| "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
+| "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 | '>' {GT}
@@ -94,7 +96,7 @@ rule token = parse
 
 | "->" {IMPLY}
 | '!' {LTLNOT}
-
+| ':' { COLON }
 | "&&" {LILAND}
 | "||" {LILOR}
 
@@ -112,10 +114,8 @@ rule token = parse
 
 | "[]" {GLOBAL}
 | "include" {INCLUDE}
-| "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
-| "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | '"'      { read_string (Buffer.create 17) lexbuf }
-| ':' { COLON }
+
 
 | '|' { CHOICE }
 
