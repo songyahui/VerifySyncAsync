@@ -540,9 +540,20 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
   let (his, current) = forward inp_sig pre ([]) prog full in 
   let (final:effect) = normalEffect (append_instance_to_effect his current) in 
-  string_of_spec_prog spec_prog ^ "\n" ^string_of_effect final 
-  (*
+  let (report, _) = printReport final post true in 
+
+  "\n========== Module: "^ nm ^" ==========\n" ^
+  "(* Temporal verification: "^ "  *)\n" ^
+  "[Pre  Condition] " ^ string_of_effect pre ^"\n"^
+  "[Post Condition] " ^ string_of_effect post ^"\n"^
+  "[Final  Effects] " ^ string_of_effect final ^"\n\n"^
+  (*(string_of_inclusion final_effects post) ^ "\n" ^*)
+  "[T.r.s: Verification for Post Condition]\n" ^ 
+  report
+   
   
+  (*
+  string_of_spec_prog spec_prog ^ "\n" ^string_of_effect final 
   (*print_string (string_of_prg_state (es_To_state pre));*)
   let initialState = initialProgState oup_sig (p_es_To_state (esToPes pre)) in 
 
