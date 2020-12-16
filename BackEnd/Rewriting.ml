@@ -177,7 +177,9 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
       (false, Node (showEntail ^ "   [NULLABLE]", []), evn)  
   else if reoccur evn normalFormL normalFormR then
       (
+      (*
       print_string (List.fold_left (fun acc (a1, a2) -> acc ^ string_of_inclusion a1 a2) "" evn);
+      *)
       (true, Node (showEntail ^ "   [REOCCUR]", []), evn)  
       )
   else 
@@ -203,7 +205,7 @@ let check_containment lhs rhs : (bool * binary_tree *  inclusion list) =
   containment [] lhs rhs
   ;;
 
-let printReport (lhs:effect) (rhs:effect) (expectation:bool):string =
+let printReport (lhs:effect) (rhs:effect) (expectation:bool):(string* bool) =
 
   let entailment = string_of_inclusion (normalEffect lhs) (normalEffect rhs) in 
   let startTimeStamp = Sys.time() in
@@ -212,7 +214,7 @@ let printReport (lhs:effect) (rhs:effect) (expectation:bool):string =
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
   let correct = if (expectation ==re) then "[Correct]" else "[Incorrect]" in 
   let buffur = ( "----------------------------------------"^"\n" ^(entailment)^"\n[Result] " ^(if re then "Succeed     " else "Fail     ")^ ( correct) ^"\n"  ^verification_time^" \n\n"^ result)
-  in buffur
+  in (buffur, (expectation ==re))
   
   ;;
 

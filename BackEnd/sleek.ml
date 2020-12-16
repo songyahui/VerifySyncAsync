@@ -18,8 +18,9 @@ let () =
     let result = List.map (fun parm ->  
                             match parm with 
                              (lhs, rhs, re) -> printReport lhs rhs re) eeList in 
-    let final_result = List.fold_right (fun x acc -> acc  ^ x ^ "\n") ( result) "" in 
+    let (final_result, count) = List.fold_right (fun (x, correct) (acc_str, acc_num) -> (acc_str  ^ x ^ "\n", if correct then acc_num + 1 else acc_num)) ( result) ("", 0) in 
     print_string ( (final_result) ^"\n");
+    print_string ("============\nSummary:" ^string_of_int count ^"/" ^string_of_int (List.length result)^" Correct!\n\n");
     (*
     print_string final_result;
     *)
