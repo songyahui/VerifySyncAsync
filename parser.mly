@@ -121,8 +121,8 @@ effect:
   helper eff}
 
 expectation:
-| a = TRUEE {true}
-| a = FALSEE {false}
+| TRUEE {true}
+| FALSEE {false}
 
 entailment:
 | lhs = effect   ENTIL   rhs = effect COLON re = expectation { (lhs, rhs, re)} 

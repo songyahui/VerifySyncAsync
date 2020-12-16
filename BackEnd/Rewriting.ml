@@ -84,6 +84,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion normalFormL normalFormR in 
+
   let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
   match es with
     Bot -> Effect (FALSE, Bot)
@@ -143,6 +144,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
     | _ -> Effect (FALSE, Bot)
 
     )
+  | Par (_, _) -> raise (Foo "derivative par")
 
   in 
 

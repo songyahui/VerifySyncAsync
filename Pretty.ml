@@ -334,6 +334,7 @@ let rec compareTerm (term1:terms) (term2:terms) : bool =
   ;;
 
 let rec aCompareES es1 es2 = 
+  (*
   let rec subESsetOf (small : es list) (big : es list) :bool = 
     let rec oneOf a set :bool = 
       match set with 
@@ -344,7 +345,7 @@ let rec aCompareES es1 es2 =
       [] -> true 
     | x :: xs -> if oneOf x big == false then false else subESsetOf xs big
   in 
-
+*)
   match (es1, es2) with 
     (Bot, Bot) -> true
   | (Emp, Emp) -> true
@@ -380,6 +381,7 @@ let rec compareRealTime rt1 rt2 =
   ;;
 
 let rec compareES es1 es2 = 
+  (*
   let rec subESsetOf (small : es list) (big : es list) :bool = 
     let rec oneOf a set :bool = 
       match set with 
@@ -390,6 +392,7 @@ let rec compareES es1 es2 =
       [] -> true 
     | x :: xs -> if oneOf x big == false then false else subESsetOf xs big
   in 
+  *)
   match (es1, es2) with 
     (Bot, Bot) -> true
   | (Emp, Emp) -> true
