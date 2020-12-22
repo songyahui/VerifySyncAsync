@@ -66,7 +66,8 @@ type prog = Halt
           | Loop of prog
           | Declear of name * prog
           | Emit of name * int option
-          | If of name * prog * prog
+          | Present of name * prog * prog
+          | If of pure * prog * prog
           | Trap of lable * prog
           | Break of lable
           | Run of name

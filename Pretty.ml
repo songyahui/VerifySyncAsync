@@ -154,28 +154,7 @@ let string_of_promise (pro:promise) : string =
 ;;
 
 
-let rec string_of_prog (p : prog) : string =
-  match p with
-    Halt -> "halt"
-  | Yield -> "yield"
-  | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
-  | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
-  | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
-  | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
-  | Emit (s, arg) -> "emit " ^ s ^ 
-  (
-    match arg with 
-      None -> ""
-    | Some (n) -> "(" ^ string_of_int n ^")"
-  ) 
-  | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
-  | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
-  | Break  mn -> "exit " ^ mn 
-  | Run mn -> "run " ^ mn
-  | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
-  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
-  | Await (pro) -> "await "^ string_of_promise pro 
-  ;;
+
 
 let rec showLTL (ltl:ltl):string =
   match ltl with 
@@ -229,6 +208,31 @@ let rec string_of_pure (p:pure):string =
   | PureAnd (p1, p2) -> "("^string_of_pure p1 ^ "/\\" ^ string_of_pure p2^")"
   | Neg p -> "(!" ^ "(" ^ string_of_pure p^"))"
   ;; 
+
+let rec string_of_prog (p : prog) : string =
+  match p with
+    Halt -> "halt"
+  | Yield -> "yield"
+  | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
+  | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
+  | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
+  | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
+  | Emit (s, arg) -> "emit " ^ s ^ 
+  (
+    match arg with 
+      None -> ""
+    | Some (n) -> "(" ^ string_of_int n ^")"
+  ) 
+  | Present (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
+  | If (p, p1, p2) -> "if " ^ string_of_pure p ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
+
+  | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
+  | Break  mn -> "exit " ^ mn 
+  | Run mn -> "run " ^ mn
+  | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
+  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
+  | Await (pro) -> "await "^ string_of_promise pro 
+  ;;
 
 let entailConstrains pi1 pi2 = 
 
