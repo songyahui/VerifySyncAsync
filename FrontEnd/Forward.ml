@@ -501,20 +501,45 @@ let rec append_es_to_effect es eff : effect =
   
 
 
-let rec forward (evn: instance) (his:effect) (current:instance) (prog:prog) (full: spec_prog list): (effect * instance) =
+let rec forward (evn: instance) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
   match prog with 
-    Halt -> (his, current)
-  | Yield -> (append_es_to_effect (Instance current) his, []) 
-  | Emit (s, arg) -> (his, append current [(One s, arg)])
-  | _ -> (his, current)
-  (*
-  | Seq (p1, p2) ->  string_of_prog p1 ^ ";\n" ^ string_of_prog p2 
+    Halt -> current
+  | Yield -> 
+    let helper (his, curr, trap) = 
+      match trap with
+      | Some name -> (his, curr, trap)
+      | None -> (append_es_to_effect (Instance curr) his, [], trap)
+    in List.map (helper) current
 
-
+  | Emit (s, arg) -> 
+    let helper (his, curr, trap) = 
+      match trap with
+      | Some name -> (his, curr, trap)
+      | None -> (his, List.append curr [(One s, arg)], trap)
+    in List.map (helper) current
   
+  | Seq (p1, p2) ->  
+    let helper (his, curr, trap) = 
+      match trap with
+      | Some name -> [(his, curr, trap)]
+      | None -> 
+        let states1 = forward evn current p1 full in 
+        List.flatten (List.map (fun (his1, cur1, trap1)->
+              match trap1 with 
+                Some _ -> [(his1, cur1, trap1)]
+              | None -> forward evn [(his1, cur1, trap1)] p2 full
+
+              )states1)
+    
+    in  List.flatten (List.map (helper) current)
+  | _ -> current
+  (*
+ 
+
+    
+  | Fork (p1, p2) ->  
 
 
-  | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
    
@@ -538,8 +563,9 @@ let rec append_instance_to_effect (eff:effect) (ins:instance) : effect =
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let (his, current) = forward inp_sig pre ([]) prog full in 
-  let (final:effect) = normalEffect (append_instance_to_effect his current) in 
+  let prog_states = forward inp_sig [(pre, [], None)] prog full in 
+  let merge_states = List.fold_left (fun acc (his, current, trap) -> Disj (acc, append_instance_to_effect his current)) (Effect(FALSE, Bot)) prog_states  in 
+  let (final:effect) = normalEffect merge_states in 
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^
@@ -551,40 +577,6 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   "[T.r.s: Verification for Post Condition]\n" ^ 
   report
    
-  
-  (*
-  string_of_spec_prog spec_prog ^ "\n" ^string_of_effect final 
-  (*print_string (string_of_prg_state (es_To_state pre));*)
-  let initialState = initialProgState oup_sig (p_es_To_state (esToPes pre)) in 
-
-
-  let final_states = forward ((*append inp_sig*) oup_sig) (initialState) prog prog full in 
-
-  let finel_p_effects = state_To_p_es final_states in 
-
-  (*print_string (string_of_p_es finel_p_effects);*)
-  let normalFinial_p_eff = normalPESFinal finel_p_effects in 
-  
-  let (res) = logical_correctness inp_sig normalFinial_p_eff in 
-
-  let correct_Eff = normalES (pesToEs normalFinial_p_eff) in 
-
-  "\n========== Module: "^ nm ^" ==========\n" ^
-  "\n(* Correctness Checking: "^" *)\n" ^
-  string_of_p_es (normalFinial_p_eff) ^"\n" ^
-
-  (if res == false then "Logical Incorrect!\n"
-  else 
-  "Logical Correct!\n"^
-  "\n(* Temporal verification: "^ "  *)\n" ^
-  "[Pre  Condition] " ^ string_of_es pre ^"\n"^
-  "[Post Condition] " ^ string_of_es post ^"\n"^
-  "[Final  Effects] " ^ string_of_es correct_Eff ^"\n\n"^
-  (*(string_of_inclusion final_effects post) ^ "\n" ^*)
-  "[T.r.s: Verification for Post Condition]\n" ^ 
-  printReport correct_Eff post
-  )
-  *)
   ;;
 
 

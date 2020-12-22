@@ -76,7 +76,7 @@ type prog = Halt
           | Await of promise 
 (*JS ASYNC*)
 
-
+type prog_states = (effect * instance * name option) list
 
 type ltl = Lable of string 
         | Next of ltl
