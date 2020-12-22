@@ -557,6 +557,28 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
                 else forward [(pure, his, curr, trap)] p2 full 
 
     in List.flatten (List.map (helper) current)
+  
+  | Trap (mn, prog) -> 
+      List.flatten (List.map (fun (pure, his, cur, trap)-> 
+      match trap with 
+        Some _ -> [(pure, his, cur, trap)]
+      | None -> 
+          let eff = forward [(pure, his, cur, trap)] prog full in 
+          List.map (fun (pureIn, hisIn, curIn, trapIn)->
+          match trapIn with 
+            Some name -> if String.compare mn name == 0 then (pure, hisIn, curIn, None)
+                         else (pureIn, hisIn, curIn, trapIn)
+          | None -> (pureIn, hisIn, curIn, trapIn)
+          )
+          eff
+      )current)
+
+  | Break name -> 
+      List.map (fun (pure, his, cur, trap)-> 
+      match trap with 
+        Some _ -> (pure, his, cur, trap)
+      | None -> (pure, his, cur, Some name)
+      )current
 
   | _ -> current
   (*
