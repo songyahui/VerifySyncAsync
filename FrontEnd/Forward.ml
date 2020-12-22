@@ -493,6 +493,13 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
   ;;
 *)
 
+let rec isPresent name curr : bool = 
+  match curr with 
+    [] -> false 
+  | (One n, _ )::xs -> if (String.compare n name == 0) then true else isPresent name xs 
+  | (_) :: xs -> isPresent name xs 
+  ;;
+
 let rec append_es_to_effect es eff : effect = 
   match eff with 
     Effect (p , es1) -> Effect (p, Cons(es1, es))
@@ -540,6 +547,16 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
     let left = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, pi), his, curr, trap )) current) p1 full in 
     let right = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, Neg pi), his, curr, trap )) current) p2 full in 
     List.append left right
+
+  | Present (name, p1, p2) ->
+    let helper (pure, his, curr, trap) = 
+      match trap with
+      | Some name -> [(pure, his, curr, trap)]
+      | None -> if isPresent name curr then 
+                forward [(pure, his, curr, trap)] p1 full 
+                else forward [(pure, his, curr, trap)] p2 full 
+
+    in List.flatten (List.map (helper) current)
 
   | _ -> current
   (*
