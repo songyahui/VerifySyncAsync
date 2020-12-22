@@ -499,42 +499,48 @@ let rec append_es_to_effect es eff : effect =
   | Disj (eff1, eff2) -> Disj (append_es_to_effect es eff1, append_es_to_effect es eff2)
   ;;
   
-
+let rec append_ins_to_es (ins:instance)  (es:es) : es = 
+  Cons(es, Instance ins)
+  ;;
 
 let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
   match prog with 
     Halt -> current
   | Yield -> 
-    let helper (his, curr, trap) = 
+    let helper (pure, his, curr, trap) = 
       match trap with
-      | Some name -> (his, curr, trap)
-      | None -> (append_es_to_effect (Instance curr) his, [], trap)
+      | Some name -> (pure, his, curr, trap)
+      | None -> (pure, append_ins_to_es curr his, [], trap)
     in List.map (helper) current
 
   | Emit (s, arg) -> 
-    let helper (his, curr, trap) = 
+    let helper (pure, his, curr, trap) = 
       match trap with
-      | Some name -> (his, curr, trap)
-      | None -> (his, List.append curr [(One s, arg)], trap)
+      | Some name -> (pure, his, curr, trap)
+      | None -> (pure, his, List.append curr [(One s, arg)], trap)
     in List.map (helper) current
   
   | Seq (p1, p2) ->  
-    let helper (his, curr, trap) = 
+    let helper (pure, his, curr, trap) = 
       match trap with
-      | Some name -> [(his, curr, trap)]
+      | Some name -> [(pure, his, curr, trap)]
       | None -> 
         let states1 = forward current p1 full in 
-        List.flatten (List.map (fun (his1, cur1, trap1)->
+        List.flatten (List.map (fun (pure1, his1, cur1, trap1)->
               match trap1 with 
-                Some _ -> [(his1, cur1, trap1)]
-              | None -> forward [(his1, cur1, trap1)] p2 full
+                Some _ -> [(pure1, his1, cur1, trap1)]
+              | None -> forward [(pure1, his1, cur1, trap1)] p2 full
 
               )states1)
     
     in  List.flatten (List.map (helper) current)
 
   | Declear (_ , p) -> forward current prog full
-    
+  | If (pi, p1, p2) -> 
+    let left = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, pi), his, curr, trap )) current) p1 full in 
+    let right = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, Neg pi), his, curr, trap )) current) p2 full in 
+    List.append left right
+
   | _ -> current
   (*
  
@@ -545,7 +551,6 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
    
-  | If (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 
   | Run mn -> "run " ^ mn
@@ -561,12 +566,22 @@ let rec append_instance_to_effect (eff:effect) (ins:instance) : effect =
   | Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)
   ;;
 
+let rec splitEffects (eff:effect) : (pure*es) list = 
+  match eff with 
+    Effect (pi, es) -> [(pi, es)]
+  | Disj (eff1, eff2) -> List.append (splitEffects eff1) (splitEffects eff2)
+  ;;
+
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let prog_states = forward (*inp_sig*) [(pre, [], None)] prog full in 
-  let merge_states = List.fold_left (fun acc (his, current, trap) -> Disj (acc, append_instance_to_effect his current)) (Effect(FALSE, Bot)) prog_states  in 
+  let initial_states = List.map (fun (a, b) -> (a, b, [], None)) (splitEffects pre) in 
+  let prog_states = forward (*inp_sig*) initial_states prog full in 
+  let merge_states = List.fold_left 
+    (fun acc (pure, his, current, trap) -> Disj (acc, append_instance_to_effect (Effect(pure, his)) current))
+    (Effect(FALSE, Bot)) 
+    prog_states  in 
   let (final:effect) = normalEffect merge_states in 
   let (report, _) = printReport final post true in 
 

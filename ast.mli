@@ -54,7 +54,6 @@ type inclusion = effect * effect;;
 
 type inclusion_sleek = effect * effect * bool;;    (*the bool is the expected result*) 
 
-
 type action = Delay of int | Timeout of int | NoneAct
 
 type promise = Sing of name * int option | Count of terms * (name * int option)
@@ -77,7 +76,7 @@ type prog = Halt
           | Await of promise 
 (*JS ASYNC*)
 
-type prog_states = (effect * instance * name option) list
+type prog_states = (pure * es * instance * name option) list
 
 type ltl = Lable of string 
         | Next of ltl
