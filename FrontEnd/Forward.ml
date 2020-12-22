@@ -501,7 +501,7 @@ let rec append_es_to_effect es eff : effect =
   
 
 
-let rec forward (evn: instance) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
+let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
   match prog with 
     Halt -> current
   | Yield -> 
@@ -523,21 +523,23 @@ let rec forward (evn: instance) (current:prog_states) (prog:prog) (full: spec_pr
       match trap with
       | Some name -> [(his, curr, trap)]
       | None -> 
-        let states1 = forward evn current p1 full in 
+        let states1 = forward current p1 full in 
         List.flatten (List.map (fun (his1, cur1, trap1)->
               match trap1 with 
                 Some _ -> [(his1, cur1, trap1)]
-              | None -> forward evn [(his1, cur1, trap1)] p2 full
+              | None -> forward [(his1, cur1, trap1)] p2 full
 
               )states1)
     
     in  List.flatten (List.map (helper) current)
+
+  | Declear (_ , p) -> forward current prog full
+    
   | _ -> current
   (*
  
 
     
-  | Fork (p1, p2) ->  
 
 
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
@@ -563,7 +565,7 @@ let rec append_instance_to_effect (eff:effect) (ins:instance) : effect =
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let prog_states = forward inp_sig [(pre, [], None)] prog full in 
+  let prog_states = forward (*inp_sig*) [(pre, [], None)] prog full in 
   let merge_states = List.fold_left (fun acc (his, current, trap) -> Disj (acc, append_instance_to_effect his current)) (Effect(FALSE, Bot)) prog_states  in 
   let (final:effect) = normalEffect merge_states in 
   let (report, _) = printReport final post true in 
