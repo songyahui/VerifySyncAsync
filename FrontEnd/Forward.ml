@@ -580,18 +580,21 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
       | None -> (pure, his, cur, Some name)
       )current
 
+
   | _ -> current
   (*
  
 
+  | Fork (p1, p2) ->
+      let left = forward current p1 full in 
+      let right = forward current p2 full in 
+      
+      
     
-
+(Fork (_, _)|Loop _|Run _|Suspend (_, _)|Async (_, _, _)|Await _)
 
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
-  | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
    
-  | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
-  | Break  mn -> "exit " ^ mn 
   | Run mn -> "run " ^ mn
   | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
   | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
