@@ -49,8 +49,14 @@ let link (p_pre: promise ref) (p_post: promise ref) : promise ref =
 
 let id a = a ;;
 
+let _fork (p1:promise ref) (p2 : promise ref) : promise ref =
+  p1;;
+
 let _then (p: promise ref) (f_resolve: dyn -> dyn) (f_reject: dyn -> dyn) : promise ref =
-  p
+  let newP = promisify in 
+  _fork 
+  (onResolve p newP f_resolve )
+  (onReject p newP f_reject)
   ;;
 
 let _catch (p: promise ref) (f_reject: dyn -> dyn) = _then p id f_reject ;;
