@@ -6,13 +6,13 @@ let promisify : promise ref = ref Pending
 
 let resolve (p: promise ref) (e: dyn): promise ref =
   match !p with 
-    Pending -> ref (Resolved e)
+    Pending ->  (p := Resolved e; p) 
   | _ -> p 
 ;;
 
 let reject (p: promise ref) (e: dyn): promise ref =
   match !p with 
-    Pending -> ref (Rejected e)
+    Pending -> (p := Rejected e; p)  
   | _ -> p 
 ;;
 
