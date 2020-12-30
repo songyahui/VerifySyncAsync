@@ -17,29 +17,27 @@ let reject (p: ('a, 'b) promise ref) (e: 'b): ('a, 'b) promise ref =
   | _ -> p 
 ;;
 
-let rec waitToBeResolved (p: ('a, 'b) promise ref) :  ('a, 'b) promise ref =
+let rec waitToBeFuffiled (p: ('a, 'b) promise ref) :  ('a, 'b) promise ref =
   match !p with 
-    Resolved _ -> p 
-  | _ -> waitToBeResolved p 
+    Pending -> waitToBeFuffiled p 
+  | _ -> p
 ;;
 
-let rec waitToBeRejected (p: ('a, 'b) promise ref) :  ('a, 'b) promise ref =
-  match !p with 
-    Rejected _ -> p 
-  | _ -> waitToBeRejected p 
-;;
+exception Foo of string
 
 let rec onResolve (p_pre: ('a, 'b) promise ref) (f: 'a -> 'c): ('c, 'd) promise ref =
-  let p_pre' = waitToBeResolved p_pre in 
+  let p_pre' = waitToBeFuffiled p_pre in 
   match !p_pre' with 
+  | Rejected e -> raise (Foo "Got Rejected from onResolve")
   | Resolved e -> ref (Resolved (f e)) 
   | _ -> ref Pending 
 ;;
 
 let rec onReject (p_pre: ('a, 'b) promise ref) (f: 'b -> 'd): ('c, 'd) promise ref =
-  let p_pre' = waitToBeRejected p_pre in 
+  let p_pre' = waitToBeFuffiled p_pre in 
   match !p_pre' with 
   | Rejected e -> ref (Resolved (f e)) 
+  | Resolved e -> p_pre'  (* seems no exception in this case*)
   | _ -> ref Pending 
 ;;
 
