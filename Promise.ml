@@ -48,13 +48,12 @@ let link (p_pre: ('a, 'b) promise ref) (p_post: ('c, 'd) promise ref) : ('a, 'b)
 
 let id a = a ;;
 
-let _fork (p1: ('a, 'b)  promise ref) (p2 : ('c, 'd) promise ref) : ('a, 'b) promise ref =
-  p1;; (* this is just making sure the type is correct *)
-
 let _then (p: ('a, 'b)  promise ref) (f_resolve: 'a -> 'c) (f_reject: 'b -> 'd) : ('c, 'd) promise ref =
-  _fork 
-  (onResolve p f_resolve )
-  (onReject p f_reject)
+  let p' = waitToBeFuffiled p in 
+  match !p' with 
+  | Rejected e -> onReject p f_reject
+  | Resolved e -> onResolve p f_resolve (* seems no exception in this case*)
+  | _ -> raise (Foo "Not possible")
   ;;
 
 let _catch (p: ('a, 'b)  promise ref) (f_reject: 'b -> 'd) = _then p id f_reject ;;
