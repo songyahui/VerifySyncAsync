@@ -41,10 +41,24 @@ let rec onReject (p_pre: ('a, 'b) promise ref) (f: 'b -> 'd): ('c, 'd) promise r
   | _ -> ref Pending 
 ;;
 
-let link (p_pre: ('a, 'b) promise ref) (p_post: ('c, 'd) promise ref) : ('a, 'b) promise ref =
+let link (p_pre: ('a, 'b) promise ref) (p_post: ('a, 'b) promise ref) : unit =
+  let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_post with 
+  | Pending -> (p_post := !p_pre')
+  | _ -> ()
+;; 
+
+  (*
+    match !p_pre with 
+  | Resolved _ -> 
+  | Rejected _ -> 
+  | Pending -> let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_pre' with 
+    
+
+  
   p_post := !p_pre;
-  p_post
-  ;;
+  p_post*)
 
 let id a = a ;;
 
