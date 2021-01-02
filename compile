@@ -9,7 +9,7 @@ ocamlc -c lexer.ml
 ocamlc -c -o Askz3.cmo Askz3.ml
 ocamlc -c Pretty.ml
 
-ocamlc -c Promise.ml
+ocamlc -c -o Promise.cmo JP/Promise.ml
 
 ocamlc -c -o Rewriting.cmo  BackEnd/Rewriting.ml
 
