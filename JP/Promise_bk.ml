@@ -74,3 +74,24 @@ let _catch (p: ('a, 'b)  promise ref) (f_reject: 'b -> 'd) = _then p id f_reject
 
 
 let main = print_string ("song yahui");
+
+
+Pending([(fn,a1)..], [(rn,a1)..])
+| F(..)
+| R(..)
+
+[exist a. (a,a->unit)]
+lazy (f a)
+
+----------------------
+
+let Pi = ref [] // execution tasks
+		
+let resolve (p: ('a, 'b) promise ref) (e: 'a): unit =
+  match !p with 
+    Pending(f,r) ->  (p := Resolved e; 
+	                  add_tasks f e Pi; 
+					  exec_until_empty Pi).
+					  
+  | _ -> p 
+;;

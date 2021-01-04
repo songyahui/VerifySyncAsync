@@ -1,138 +1,111 @@
-open String
-open List
-open Printf
-open Int32
+type ('a, 'b, 'f) promise = 
+  Pending of  (('f * ('a, 'b , 'f) promise ref ) list * ('f * ('a, 'b , 'f) promise ref) list )
+| Resolved of 'a 
+| Rejected of 'b
 
-exception Foo of string
+type ('a, 'b, 'f) pi = ('a * 'f * ('a, 'b, 'f) promise ref) list
 
-type dyn = Num of int | Str of string
 
-type state = P | F of dyn | R of dyn
+let add_tasks (acts:('f * ('a, 'b , 'f) promise ref) list) (e: 'a) (pi: ('a, 'b, 'f) pi ref) : unit = 
+  pi := List.append (!pi) 
+  (
+    List.fold_left (fun acc (f, p) -> List.append acc [(e, f , p)]) [] acts
+  )
+;;
 
-type addr = int 
 
-type promise = (addr * state)
+let rec resolve (p: ('a, 'b, 'f) promise ref) (pi: ('a, 'b, 'f) pi ref) (e: 'a): unit =
+  match !p with 
+    Pending (f_act, r_act)->  
+      (p := Resolved e;
+       add_tasks f_act e pi; 
+       exec_until_empty pi
+       )
+  | _ -> ()
+  
+and 
 
-type reaction = Lam | Default
+exec_until_empty (_pi: ('a, 'b, 'f) pi ref) : unit = 
+  match !_pi with 
+    [] -> ()
+  | (v, f, _p)::xs -> resolve (_p) (ref xs) (f v) ;;
 
-type promise_reaction = (reaction * addr)
 
-type fulfillReaction = (addr * promise_reaction list )
+
+
+(*type ('a, 'b, 'f) reactions = ('f * ('a, 'b) promise) list
+
+type ('a, 'b, 'f) fulfillReaction = (addr * promise_reaction list )
 
 type rejectReaction = (addr * promise_reaction list )
 
-type queue = (dyn * reaction * addr) list
+let (fulfillReaction)
 
-type expr = Undef 
-          | Promisify 
-          | Resolve of addr * dyn
-          | Reject of addr * dyn
-          | OnResolve of addr * reaction * addr
-          | OnReject of addr * reaction * addr
-          | Link of addr * addr
 
-type program_state = ((promise) list * fulfillReaction list * rejectReaction list * queue)
 
-let promise_counter = ref (-1) 
 
-let addr_generator = 
-  promise_counter := !promise_counter + 1;
-  !promise_counter
-  ;;
+let reject (p: ('a, 'b) promise ref) (e: 'b): ('a, 'b) promise ref =
+  match !p with 
+    Pending -> (p := Rejected e; p)  
+  | _ -> p 
+;;
 
-let rec settle_promise (addr:addr) (x:dyn) (ps:promise list) (flag): promise list = 
-  (*flag = true is to resolve, false is to reject *)
-  let rec aux front _ps = 
-    match _ps with 
-      [] -> raise (Foo "settling an non-existing promise")
-    | (a, p) ::xs -> 
-      if a == addr then 
-      (
-        match p with 
-        | P -> List.append front (if flag then ((a, F x) :: xs) else ((a, R x) :: xs))
-        | _-> List.append front _ps
-      )
-      else aux (List.append front [(a, p)]) xs
-  in aux [] ps
-      ;;
+let rec waitToBeFuffiled (p: ('a, 'b) promise ref) :  ('a, 'b) promise ref =
+  match !p with 
+    Pending -> waitToBeFuffiled p 
+  | _ -> p
+;;
 
-let register_reacts (addr_pre:addr) (addr_po) (reaction:reaction) (fs:fulfillReaction list) : fulfillReaction list = 
-  let rec aux front _fs = 
-    match _fs with 
-      [] -> (addr_pre, [(reaction, addr_po)]) :: front
-    | (a, react_li) :: xs ->
-      if a == addr_pre then List.append front ((addr_pre, (reaction, addr_po)::react_li  ):: xs)
-      else aux (List.append front [(a, react_li)]) xs
-  in aux [] fs 
-  ;;
+exception Foo of string
 
-let retrive_reactions (fs:fulfillReaction list) (addr:addr) : (fulfillReaction list * promise_reaction list) = 
-  let rec aux front _fs = 
-    match _fs with 
-      [] -> (front, [])
-    | (a, react_li)::xs -> 
-      if a == addr then (List.append front xs,  react_li)
-      else aux (List.append front [(a, react_li)]) xs 
-  in aux [] fs
-  ;;
+let rec onResolve (p_pre: ('a, 'b) promise ref) (f: 'a -> 'c): ('c, 'd) promise ref =
+  let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_pre' with 
+  | Rejected e -> raise (Foo "Got Rejected from onResolve")
+  | Resolved e -> ref (Resolved (f e)) 
+  | _ -> ref Pending 
+;;
 
-let enqueue (q:queue) (v:dyn) (reacts: promise_reaction list) :queue = 
-  List.append q (List.fold_left (fun acc (re, a) -> List.append acc [(v, re, a)]) [] reacts)
+let rec onReject (p_pre: ('a, 'b) promise ref) (f: 'b -> 'd): ('c, 'd) promise ref =
+  let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_pre' with 
+  | Rejected e -> ref (Resolved (f e)) 
+  | Resolved e -> p_pre'  (* seems no exception in this case*)
+  | _ -> ref Pending 
+;;
 
-let rec state_of_promise (ps:promise list) (addr:addr) : state = 
-  match ps with 
-    [] -> raise (Foo "getting the state of an undefined promise")
-  | (a, s)::xs -> if a == addr then s else  state_of_promise xs addr
-  ;;
+let link (p_pre: ('a, 'b) promise ref) (p_post: ('a, 'b) promise ref) : unit =
+  let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_post with 
+  | Pending -> (p_post := !p_pre')
+  | _ -> ()
+;; 
 
-let one_step_forward (program_state:program_state) (expr:expr) :program_state = 
-  let (ps, f_reacts, r_reacts, q) = program_state in 
-  match expr with 
-  | Undef -> program_state 
+  (*
+    match !p_pre with 
+  | Resolved _ -> 
+  | Rejected _ -> 
+  | Pending -> let p_pre' = waitToBeFuffiled p_pre in 
+  match !p_pre' with 
+    
 
-  | Promisify -> 
-    let (new_p:promise) = (addr_generator, P)  in 
-    ((List.append ps [(new_p)]), f_reacts, r_reacts, q)
-
-  | Resolve (a, v) -> 
-    (* to change the promese states *)
-    let (new_ps:promise list) = settle_promise a v ps true in 
-    (* to retrive the reactions registered on a on resolve *)
-    let (new_f_reacts, (reacts :promise_reaction list)) = retrive_reactions f_reacts a in 
-    (* enqueue the reaction into the queue *)
-    let (new_q:queue) = enqueue q v reacts in 
-    (* update the ps, f_reacts and  new_q*)
-    (new_ps, new_f_reacts, r_reacts, new_q)
-
-  | Reject (a, v) -> 
-    (* to change the promese states *)
-    let (new_ps:promise list) = settle_promise a v ps false in 
-    (* to retrive the reactions registered on a on reject *)
-    let (new_r_reacts, (reacts :promise_reaction list)) = retrive_reactions r_reacts a in 
-    (* enqueue the reaction into the queue *)
-    let (new_q:queue) = enqueue q v reacts in 
-    (* update the ps, r_reacts and  new_q*)
-    (new_ps, f_reacts, new_r_reacts, new_q)
-
-  | OnResolve (a_pre, reaction, a_po) -> 
-    let new_f_reacts = register_reacts a_pre a_po reaction f_reacts in 
-    (ps, new_f_reacts, r_reacts, q)
-
-  | OnReject (a_pre, reaction, a_po) -> 
-    let new_r_reacts = register_reacts a_pre a_po reaction r_reacts in 
-    (ps, f_reacts, new_r_reacts, q)
   
-  | Link (a1, a2) -> (*a1.link(a2)*)
-    let p1 = state_of_promise ps a1 in 
-    match p1 with 
-    | P -> 
-      let new_f_reacts = register_reacts a1 a2 Default f_reacts in 
-      let new_r_reacts = register_reacts a1 a2 Default r_reacts in 
-      (ps, new_f_reacts, new_r_reacts, q)
-    | F v | R v -> 
-      let (new_q:queue) = enqueue q v [(Default, a2)] in 
-      (ps, f_reacts, r_reacts, new_q)
+  p_post := !p_pre;
+  p_post*)
+
+let id a = a ;;
+
+let _then (p: ('a, 'b)  promise ref) (f_resolve: 'a -> 'c) (f_reject: 'b -> 'd) : ('c, 'd) promise ref =
+  let p' = waitToBeFuffiled p in 
+  match !p' with 
+  | Rejected e -> onReject p f_reject
+  | Resolved e -> onResolve p f_resolve (* seems no exception in this case*)
+  | _ -> raise (Foo "Not possible")
   ;;
 
+let _catch (p: ('a, 'b)  promise ref) (f_reject: 'b -> 'd) = _then p id f_reject ;;
+*)
 
-let () = print_string ("yahui song")
+let main = print_string ("song yahui");
+
+
