@@ -1,3 +1,25 @@
+type 'r reaction = ('r -> unit)
+
+type ('a, 'b) promise = Pending of ('a reaction list * 'b reaction list) | F of 'a | R of 'b
+
+type ('a) queue = ('a * 'a reaction lazy_t)  list
+
+let (pi: int queue ref) = ref [] ;;
+
+let rec exec_until_empty (): unit = 
+  match !pi with 
+    [] -> ()
+  | (v, task) :: xs -> 
+      ((Lazy.force task) v; 
+      exec_until_empty () )
+;;
+
+
+(*
+
+int lazy_t
+
+
 type ('a, 'b, 'f) promise = 
   Pending of  (('f * ('a, 'b , 'f) promise ref ) list * ('f * ('a, 'b , 'f) promise ref) list )
 | Resolved of 'a 
@@ -5,6 +27,11 @@ type ('a, 'b, 'f) promise =
 
 type ('a, 'b, 'f) pi = ('a * 'f * ('a, 'b, 'f) promise ref) list
 
+
+lazy unit
+
+
+let (pi:lazy unit) = ref [];;
 
 let add_tasks (acts:('f * ('a, 'b , 'f) promise ref) list) (e: 'a) (pi: ('a, 'b, 'f) pi ref) : unit = 
   pi := List.append (!pi) 
@@ -32,6 +59,51 @@ exec_until_empty (_pi: ('a, 'b, 'f) pi ref) : unit =
 
 
 
+
+  ===================================
+type ('a, 'b, 'f) promise = 
+  Pending([(fn,a1)..] ::('a->unit) list, [(rn,a1)..]:('b->unit) list)
+| F(..)
+| R(..)
+
+(fn::'a -> 'c, a1::Promise 'c _)
+(rj::'b -> 'd, a1::Promise _ 'd)
+
+apply_resolve next_promise = (\ a -> resolve next_promise a)
+
+let rec resolve (p: ('a, 'b, 'f) promise ref) (pi: ('a, 'b, 'f) pi ref) (e: 'a): unit =
+  match !p with 
+    Pending (f_act, r_act)->  
+      (p := Resolved e;
+       add_tasks f_act e pi; 
+       exec_until_empty pi
+       )
+  | _ -> ()
+  
+let exec_until_empty (_pi: ('a, 'b, 'f) pi ref) : unit = 
+  match !_pi with 
+    [] -> ()
+  | (v, f, _p)::xs -> resolve (_p) (ref xs) (f v) ;;
+  
+let exec_until_empty (_pi: ('a, 'b, 'f) pi ref) : unit = 
+  match !_pi with 
+    [] -> ()
+  | (v, f, _p)::xs -> resolve (_p) (ref xs) (f v) ;;
+let add_tasks (acts:('f * ('a, 'b , 'f) promise ref) list) (e: 'a) (pi: ('a, 'b, 'f) pi ref) : unit = 
+  pi := List.append (!pi) 
+  (
+    List.fold_left (fun acc (f, p) -> List.append acc [(e, f , p)]) [] acts
+  )
+
+
+(*onResolve (p: ('a, 'b, 'f) promise ref) (p_new: ('a, 'b, 'f) promise ref) (f: 'f): unit =
+  match !p with 
+  | Pending (f_act, r_act) -> p := Pending ((f, p_new)::f_act, r_act);
+  | Resolved v
+  | Rejected v 
+
+
+and*)
 
 (*type ('a, 'b, 'f) reactions = ('f * ('a, 'b) promise) list
 
@@ -108,4 +180,4 @@ let _catch (p: ('a, 'b)  promise ref) (f_reject: 'b -> 'd) = _then p id f_reject
 
 let main = print_string ("song yahui");
 
-
+*)
