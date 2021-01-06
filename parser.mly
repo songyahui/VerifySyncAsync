@@ -6,7 +6,7 @@
 %token <int> INTE
 %token <bool> TRUEE FALSEE 
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
-%token AWAIT ASYNC SUSPEND COLON COUNT
+%token AWAIT ASYNC SUSPEND COLON COUNT QUESTION
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
@@ -51,9 +51,11 @@ ltl :
 | LPAR p1= ltl LILAND p2= ltl RPAR {AndLTL (p1, p2)}  
 | LPAR p1= ltl LILOR p2= ltl RPAR {OrLTL (p1, p2)}  
 
-singleVAR: var = VAR {[(One var, None)]}
+singleVAR: 
+| var = VAR {[(One var, None)]}
 | LTLNOT var = VAR {[(Zero var, None)]}
 | var = VAR LPAR  n = INTE RPAR {[(One var, Some n)]}
+| QUESTION var = VAR {[(Wait var, None)]}
 
 existVar:
 | {[]}

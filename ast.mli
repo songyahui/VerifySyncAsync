@@ -24,7 +24,7 @@ type realtime =
 type es = Bot 
         | Emp 
         | RealTime of realtime (*real time tick*)
-        | Instance of instance  (*logical tick*)
+        | Instance of instance (*logical tick*)
         | Cons of es * es
         | Choice of es * es
         | Ttimes of es * terms

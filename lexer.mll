@@ -97,6 +97,7 @@ rule token = parse
 
 | "->" {IMPLY}
 | '!' {LTLNOT}
+| '?' {QUESTION}
 | ':' { COLON }
 | "&&" {LILAND}
 | "||" {LILOR}
