@@ -496,7 +496,7 @@ let initialProgState (inp:string list) (p_states:prog_states): prog_states =
 let rec isPresent name curr : bool = 
   match curr with 
     [] -> false 
-  | (One n, _ )::xs -> if (String.compare n name == 0) then true else isPresent name xs 
+  | (One n)::xs -> if (String.compare n name == 0) then true else isPresent name xs 
   | (_) :: xs -> isPresent name xs 
   ;;
 
@@ -520,11 +520,11 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
       | None -> (pure, append_ins_to_es curr his, [], trap)
     in List.map (helper) current
 
-  | Emit (s, arg) -> 
+  | Emit (s) -> 
     let helper (pure, his, curr, trap) = 
       match trap with
       | Some name -> (pure, his, curr, trap)
-      | None -> (pure, his, List.append curr [(One s, arg)], trap)
+      | None -> (pure, his, List.append curr [(One s)], trap)
     in List.map (helper) current
   
   | Seq (p1, p2) ->  

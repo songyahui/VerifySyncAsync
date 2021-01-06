@@ -10,3 +10,4 @@ rm parser.mli
 rm hip
 rm sleek
 rm ltl
+rm promise

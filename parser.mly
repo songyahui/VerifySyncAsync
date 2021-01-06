@@ -6,7 +6,7 @@
 %token <int> INTE
 %token <bool> TRUEE FALSEE 
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
-%token AWAIT ASYNC SUSPEND COLON COUNT QUESTION
+%token AWAIT ASYNC ASSERT COLON COUNT QUESTION SHARP
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUE FALSE NEGATION
 (* LBrackets  RBrackets POWER*)
@@ -52,10 +52,9 @@ ltl :
 | LPAR p1= ltl LILOR p2= ltl RPAR {OrLTL (p1, p2)}  
 
 singleVAR: 
-| var = VAR {[(One var, None)]}
-| LTLNOT var = VAR {[(Zero var, None)]}
-| var = VAR LPAR  n = INTE RPAR {[(One var, Some n)]}
-| QUESTION var = VAR {[(Wait var, None)]}
+| var = VAR {[(One var)]}
+| LTLNOT var = VAR {[(Zero var)]}
+| QUESTION var = VAR {[(Wait var)]}
 
 existVar:
 | {[]}
@@ -102,7 +101,7 @@ es:
   Instance (signals) }
   
 | LPAR r = es RPAR { r }
-| b = realtime {RealTime b }
+| a = es SHARP b = realtime {RealTime (a, b) }
 | a = es CONCAT b = es { Cons(a, b) } 
 | a = es DISJ b = es { Choice(a, b) } 
 | a = es PAR b = es {Par (a, b )}
@@ -140,9 +139,9 @@ pRog_aux:
 | {Halt}
 | NOTHING { Halt }
 | PAUSE   { Yield } 
-| EMIT s = VAR  {Emit (s, None)}
+| EMIT s = VAR  {Emit s}
 
-| EMIT s = VAR  LPAR n =  INTE RPAR {Emit (s, Some n)}
+| EMIT s = VAR  LPAR n =  INTE RPAR {Emit s}
 
 | LOOP LBRACK p = pRog RBRACK { Loop p}
 | SIGNAL s = VAR SIMI p = pRog { Declear (s, p)}
@@ -152,10 +151,10 @@ pRog_aux:
 | EXIT mn = VAR  {Break mn}
 (*| EXIT mn = VAR d = INTE  {Exit (mn, d)}*)
 | RUN mn = VAR {Run mn}
-| ABORT p = pRog  WHEN s = VAR {Suspend (p, s)}
-| AWAIT mn = promise {Await mn}
-| SUSPEND p = pRog WHEN mn = VAR {Suspend(p, mn)}
-| ASYNC mn = VAR  LBRACK p = pRog RBRACK {Async(mn, p, NoneAct)}
+| ABORT s =  pRog WHEN p = INTE {Abort (p, s)}
+| AWAIT mn = VAR {Await mn}
+| ASYNC mn = VAR  LBRACK p = pRog RBRACK {Async(mn, p, 0)}
+| ASSERT eff = effect {Assert eff}
 
 pRog:
 | p = pRog_aux {p}
@@ -163,10 +162,10 @@ pRog:
 | LPAR p1 = pRog RPAR PAR LPAR p2 = pRog RPAR{ Fork (p1, p2)}
 
 
-argueVAR: var = VAR {([(Zero var, None)], [(Zero var, None)])}
-| IN var = VAR {([(Zero var, None)], [])}
-| OUT var = VAR {([], [(Zero var, None)])}
-| INOUT var = VAR {([(Zero var, None)], [(Zero var, None)])}
+argueVAR: var = VAR {([(Zero var)], [(Zero var)])}
+| IN var = VAR {([(Zero var)], [])}
+| OUT var = VAR {([], [(Zero var)])}
+| INOUT var = VAR {([(Zero var)], [(Zero var)])}
 
 argueListVar:
 | {([], [])}

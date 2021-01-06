@@ -16,11 +16,9 @@ let rec fst (pi :pure) (es:es): fst list =
   | Ttimes (es1, t) -> fst pi es1
   | Cons (es1 , es2) ->  if nullable pi es1 then append (fst pi es1) (fst pi es2) else fst pi es1
   | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
-  | RealTime rt -> [(Emp, Some rt)]
+  | RealTime (es1, rt) -> [(es1, Some rt)]
   | Kleene es1 -> fst pi es1
-  | Par (es1 , RealTime rt) -> [(es1, Some rt)]
-  | Par (RealTime rt, es1) -> [(es1, Some rt)]
-  | _ -> raise (Foo "not definde in fst")
+  | Par (es1 , es2) -> List.append (fst pi es1) (fst pi es2)
 ;;
 
 
@@ -114,17 +112,19 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
       let temp1 =  (derivative pi es1 fst) in
       let temp2 =  (derivative pi es2 fst) in 
       normalEffect (ifShouldDisj temp1 temp2)
-  | RealTime rt -> 
+  | RealTime (es1, rt) -> 
     (match fst with 
-        (Emp, Some rt1) -> 
+        (esfst, Some rt1) -> 
           let rtpure = realtimeToPure rt in 
           let rt1pure = realtimeToPure rt1 in 
-          if entailConstrains rt1pure rtpure then Effect (pi, Emp) 
+          let (re, _ , _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in 
+          if entailConstrains rt1pure rtpure && re then Effect (pi, Emp) 
           else Effect (FALSE, Bot)
       |_ -> Effect (FALSE, Bot)
       )
   | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
-  | Par (es1 , RealTime rt) -> 
+ (*
+  | Par (es1 , es2) -> 
     (match fst with 
       (esfst, Some rt1) -> 
         let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
@@ -144,6 +144,7 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
     | _ -> Effect (FALSE, Bot)
 
     )
+ *)
   | Par (_, _) -> raise (Foo "derivative par")
 
   in 
@@ -200,11 +201,22 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
  
   ;;
 
+let rec matchAsyncAwaitEs (es:es) :es  = 
+  es
+  ;;
+
+let rec matchAsyncAwaitEffect (eff:effect) : effect = 
+  match eff with 
+    Effect (pi, es) -> Effect (pi, matchAsyncAwaitEs es)
+  | Disj (eff1, eff2) -> Disj (matchAsyncAwaitEffect eff1, matchAsyncAwaitEffect eff2) 
+  ;;
 
 
 
 let check_containment lhs rhs : (bool * binary_tree *  inclusion list) = 
-  containment [] lhs rhs
+  let lhs' = matchAsyncAwaitEffect lhs in 
+  let rhs' = matchAsyncAwaitEffect rhs in 
+  containment [] lhs' rhs'
   ;;
 
 let printReport (lhs:effect) (rhs:effect) (expectation:bool):(string* bool) =

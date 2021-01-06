@@ -37,7 +37,7 @@ rule token = parse
 | "emit" {EMIT}
 | "await" {AWAIT}
 | "async" {ASYNC}
-| "suspend" {SUSPEND}
+| "assert" {ASSERT}
 | "when" {WHEN}
 | "if" {PRESENT}
 | "run" {RUN}
@@ -87,7 +87,7 @@ rule token = parse
 | '~' {NEGATION}
 | '[' { LBrackets }
 | ']' { RBrackets }
-
+| '#' { SHARP }
 | ',' { COMMA }
 
 | '^' { POWER }
@@ -130,7 +130,7 @@ rule token = parse
 
 
 
-| '#' { SHARP }
+
 
 
 

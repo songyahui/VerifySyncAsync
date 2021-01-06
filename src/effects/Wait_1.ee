@@ -1,4 +1,4 @@
 
-TRUE /\ ({A} || >3).{B} |- TRUE /\ ({A}||>2).{B} : true;
+TRUE /\ {?B} \/ {B} |- TRUE /\ {?B} : true;
 
 

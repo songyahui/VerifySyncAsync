@@ -97,13 +97,13 @@ let rec input_lines file =
   | [line] -> (String.trim line) :: input_lines file
   | _ -> failwith "Weird input_line return value"
 ;;
-
+(*
 let rec string_of_action (act:action) : string = 
   match act with 
     Delay n -> "Delay " ^ string_of_int n  
   | Timeout n -> "time out " ^ string_of_int n  
   | NoneAct -> "NoneAct";;
-
+*)
 let string_of_state (state :signal):string = 
   match state with 
     One name -> name 
@@ -112,13 +112,13 @@ let string_of_state (state :signal):string =
 
 
 let string_of_sl (sl: instance):string = 
-  List.fold_left (fun acc (sig_, n) -> 
+  List.fold_left (fun acc (sig_) -> 
   acc ^ "" ^ 
-  string_of_state sig_ ^ (
+  string_of_state sig_ (*^ (
     match n with 
       None -> ";"
     | Some n -> "(" ^ string_of_int n ^");"
-  )
+  )*)
   ) "" sl
 ;;
 
@@ -136,6 +136,7 @@ let rec string_of_terms (t:terms):string =
 
   ;;
 
+(*
 let string_of_promise (pro:promise) : string = 
   match pro with 
     Sing (s, arg) -> 
@@ -152,7 +153,7 @@ let string_of_promise (pro:promise) : string =
     | Some (n) -> "(" ^ string_of_int n ^")"
     ) 
 ;;
-
+*)
 
 
 
@@ -189,7 +190,7 @@ let rec string_of_es (es:es) :string =
   | Cons (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
   | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
-  | RealTime rt-> string_of_realtime rt
+  | RealTime (es, rt)-> "(" ^ string_of_es es ^ "#" ^string_of_realtime rt^")"
   | Choice (es1, es2) -> "("^string_of_es es1 ^ " + " ^ string_of_es es2^")"
   | Par (es1, es2) -> "("^string_of_es es1 ^ " || " ^ string_of_es es2^")"
   ;;
@@ -209,6 +210,14 @@ let rec string_of_pure (p:pure):string =
   | Neg p -> "(!" ^ "(" ^ string_of_pure p^"))"
   ;; 
 
+
+let rec string_of_effect(eff:effect): string = 
+  match eff with 
+    Effect (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
+  | Disj (es1, es2) -> string_of_effect es1 ^ " \\/ " ^ string_of_effect es2
+;;
+
+
 let rec string_of_prog (p : prog) : string =
   match p with
     Halt -> "halt"
@@ -217,21 +226,22 @@ let rec string_of_prog (p : prog) : string =
   | Fork (p1, p2) ->  "(" ^ string_of_prog p1 ^ ")\n||\n (" ^ string_of_prog p2 ^" )"
   | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
   | Declear (s, prog) -> "signal " ^ s ^ " in \n" ^ string_of_prog prog ^ "\nend signal"
-  | Emit (s, arg) -> "emit " ^ s ^ 
-  (
+  | Emit (s) -> "emit " ^ s   (*^ 
+
     match arg with 
       None -> ""
     | Some (n) -> "(" ^ string_of_int n ^")"
-  ) 
+  *) 
   | Present (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
   | If (p, p1, p2) -> "if " ^ string_of_pure p ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
 
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 
   | Run mn -> "run " ^ mn
-  | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
-  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
-  | Await (pro) -> "await "^ string_of_promise pro 
+  | Abort (s, prog) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^ string_of_int s
+  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_int act
+  | Await (pro) -> "await "^ pro 
+  | Assert eff -> "assert "^ string_of_effect eff 
   ;;
 
 let entailConstrains pi1 pi2 = 
@@ -242,12 +252,6 @@ let entailConstrains pi1 pi2 =
   print_string (string_of_bool (sat) ^ "\n");
   *)
   sat;;
-
-let rec string_of_effect(eff:effect): string = 
-  match eff with 
-    Effect (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
-  | Disj (es1, es2) -> string_of_effect es1 ^ " \\/ " ^ string_of_effect es2
-;;
 
 
 let string_of_spec_prog (inp:spec_prog):string = 
@@ -271,6 +275,7 @@ let string_of_inclusion (lhs:effect) (rhs:effect) :string =
   ;;
 
 
+(*
 let compareSignal (s1 :signal * int option) (s2:signal * int option) : bool =
   match (s1, s2) with 
     ((One n1, Some n11), (One n2, Some n22)) -> String.compare n1 n2 == 0 && n11 == n22
@@ -278,6 +283,15 @@ let compareSignal (s1 :signal * int option) (s2:signal * int option) : bool =
   | ((One n1, None), (One n2, None)) -> String.compare n1 n2 == 0 
   | ((Zero n1, None) , (Zero n2, None) ) -> String.compare n1 n2 == 0 
 
+  | _ -> false 
+  ;;
+*)
+let compareSignal (s1 :signal) (s2:signal) : bool =
+  
+  match (s1, s2) with 
+  | (One n1, One n2) -> String.compare n1 n2 == 0
+  | (Zero n1, Zero n2) -> String.compare n1 n2 == 0
+  | (Wait n1, Wait n2) -> String.compare n1 n2 == 0
   | _ -> false 
   ;;
 
@@ -303,7 +317,7 @@ let rec checkHasFalse ss : bool =
 
 
 
-let rec oneOf (sig_:signal* int option) (ss:instance) : bool =
+let rec oneOf (sig_:signal) (ss:instance) : bool =
   match ss with 
     [] -> false 
   | sig_head:: xs -> 
@@ -335,7 +349,7 @@ let rec nullable (pi :pure) (es:es) : bool=
   | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   | Kleene _ -> true  
   | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
-  | RealTime rt ->   askZ3 (realtimeToPure rt )
+  | RealTime (es, rt) ->  nullable pi es (* askZ3 (realtimeToPure rt )*)
   | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
   | Par (es1, es2) -> (nullable pi es1) && (nullable pi es2)
   ;;
@@ -435,7 +449,7 @@ let rec compareES es1 es2 =
       let termEq = compareTerm termL termR in
       insideEq && termEq
   | (Kleene esL, Kleene esR) -> compareES esL esR
-  | (RealTime rt1, RealTime rt2 ) -> compareRealTime rt1 rt2
+  | (RealTime (es1, rt1), RealTime (es2, rt2) ) -> compareES es1 es2 && compareRealTime rt1 rt2
   | _ -> false
 ;;
 
@@ -515,7 +529,7 @@ let rec normalES (es:es) (pi:pure):es =
     Bot -> es
   | Emp -> es
   | Instance ins -> Instance ins  (*logical tick*)
-  | RealTime rt -> RealTime rt
+  | RealTime (es, rt) -> if askZ3 (realtimeToPure rt ) then Bot else es
   | Cons (Cons (esIn1, esIn2), es2)-> normalES (Cons (esIn1, Cons (esIn2, es2))) pi
   | Cons (es1, es2) -> 
       let normalES1 = normalES es1 pi in

@@ -5,7 +5,7 @@ type lable = string
 type signal = One of name | Zero of name | Wait of name 
 
 (*signal set*)
-type instance = (signal * int option) list ;;
+type instance = (signal) list ;;
 
 
 type terms = Var of name
@@ -23,13 +23,13 @@ type realtime =
 
 type es = Bot 
         | Emp 
-        | RealTime of realtime (*real time tick*)
         | Instance of instance (*logical tick*)
         | Cons of es * es
         | Choice of es * es
-        | Ttimes of es * terms
-        | Kleene of es
         | Par of es * es 
+        | RealTime of es * realtime (*real time tick*)
+        | Ttimes of es * terms
+        | Kleene of es 
         
 type fst = es * (realtime option )
 
@@ -54,26 +54,23 @@ type inclusion = effect * effect;;
 
 type inclusion_sleek = effect * effect * bool;;    (*the bool is the expected result*) 
 
-type action = Delay of int | Timeout of int | NoneAct
-
-type promise = Sing of name * int option | Count of terms * (name * int option)
-
 type prog = Halt 
           | Yield 
           | Seq of prog * prog 
           | Fork of prog * prog
           | Loop of prog
           | Declear of name * prog
-          | Emit of name * int option
+          | Emit of name
           | Present of name * prog * prog
           | If of pure * prog * prog
           | Trap of lable * prog
           | Break of lable
           | Run of name
-          | Suspend of prog * name 
+          | Abort of int * prog
 (*Esterel SYNC*)
-          | Async of name * prog * action  (*set a timeout*)
-          | Await of promise 
+          | Async of name * prog * int (*the delay*)  (*set a timeout*)
+          | Await of name 
+          | Assert of effect
 (*JS ASYNC*)
 
 type prog_states = (pure * es * instance * name option) list
