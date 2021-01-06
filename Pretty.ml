@@ -175,7 +175,8 @@ let rec showLTL (ltl:ltl):string =
 
 let rec string_of_realtime (rt:realtime):string = 
   match rt with 
-    EqConst n -> "=" ^ string_of_int n 
+    Anytime -> ""
+  | EqConst n -> "=" ^ string_of_int n 
   | Greater n -> ">" ^ string_of_int n 
   | LessThan n -> "<" ^ string_of_int n 
   | RTAnd (rt1, rt2) -> string_of_realtime rt1 ^ "/\\" ^ string_of_realtime rt2
@@ -334,7 +335,8 @@ let rec deleteRedundent sl : instance =
 
 let rec realtimeToPure (rt:realtime) :pure = 
   match rt with 
-    EqConst n -> Eq (Var "n", Number n )
+  | Anytime -> TRUE
+  | EqConst n -> Eq (Var "n", Number n )
   | Greater n -> Gt (Var "n", Number n )
   | LessThan n -> Lt (Var "n", Number n )
   | RTAnd (rt1, rt2) -> PureAnd (realtimeToPure rt1, realtimeToPure rt2)
@@ -347,7 +349,7 @@ let rec nullable (pi :pure) (es:es) : bool=
   | Emp -> true
   | Instance _  -> false 
   | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
-  | Kleene _ -> true  
+  | Kleene _ -> false (* now kleene represents infinite trace *)  
   | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
   | RealTime (es, rt) ->  nullable pi es (* askZ3 (realtimeToPure rt )*)
   | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
@@ -538,14 +540,15 @@ let rec normalES (es:es) (pi:pure):es =
         (Emp, _) -> normalES2 
       | (_, Emp) -> normalES1
       | (Bot, _) -> Bot
+      | (Kleene esIn, _) -> Kleene esIn (* kleene now is infinite constructor *)
 
-      | (Kleene (esIn1), Kleene (esIn2)) -> 
+      (*| (Kleene (esIn1), Kleene (esIn2)) -> 
           if aCompareES esIn1 esIn2 == true then normalES2
           else Cons (normalES1, normalES2)
       | (Kleene (esIn1), Cons(Kleene (esIn2), es2)) -> 
           if aCompareES esIn1 esIn2 == true then normalES2
           else Cons (normalES1, normalES2) 
-
+      *)
       | (normal_es1, normal_es2) -> 
 
         match (normal_es1, normal_es2) with 
@@ -606,7 +609,6 @@ let rec normalES (es:es) (pi:pure):es =
       | Kleene esIn1 ->  Kleene (normalES esIn1 pi)
       | Choice(Emp, aa) -> Kleene aa
       | _ ->  Kleene normalInside)
-
 
   | Par (es1, es2) -> Par (es1, es2)
    ;;

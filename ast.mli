@@ -14,7 +14,8 @@ type terms = Var of name
            | Minus of terms * terms
 
 type realtime = 
-             EqConst of int 
+           | Anytime 
+           | EqConst of int 
            | Greater of int
            | LessThan of int
            | RTAnd of realtime * realtime
@@ -31,7 +32,7 @@ type es = Bot
         | Ttimes of es * terms
         | Kleene of es 
         
-type fst = es * (realtime option )
+type fst = es * realtime
 
 (*Arithimetic pure formulae*)
 type pure = TRUE
