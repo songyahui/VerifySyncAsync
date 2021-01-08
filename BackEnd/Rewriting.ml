@@ -8,7 +8,7 @@ open Pretty
 open Sys
 open Askz3
 
-let rec fst (es:es): fst= 
+let rec fst (es:es): fst list= 
   match es with
     Bot -> []
   | Emp -> []
@@ -34,21 +34,17 @@ let rec appendEff_ES eff es =
   raise ( Foo "appendEff_ES exception!")*)
   ;;
 
-(*
+
 let ifShouldDisj (temp1:effect) (temp2:effect) : effect = 
   match (temp1, temp2) with
-      (Effect(pure1, evs1), Effect(pure2, evs2)) -> 
-        if comparePure pure1 pure2 then  Effect (pure1, Choice (evs1, evs2))
-        else Disj (temp1, temp2 )
-      | _ -> 
-      Disj (temp1, temp2 )
-  ;;
-*)
+      ((pure1, evs1), (pure2, evs2)) -> 
+        (PureAnd(pure1, pure2),  Choice (evs1, evs2))
+;;
 
 
 
 
-let rec checkFst (eff:effect) : fst = 
+let rec checkFst (eff:effect) : fst list = 
   match eff with
    (pi, es) -> fst es
   (*| Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) *)
@@ -81,6 +77,62 @@ let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool =
   in aux evn
   ;;
 
+let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
+  match es with
+    Bot ->  (FALSE, Bot)
+  | Emp ->  (FALSE, Bot)
+  | Instance ins ->  
+
+          if instansEntails fst ins then (pi, Emp) 
+          else (FALSE, Bot)
+      
+
+  (*| Ttimes (es1, t) -> 
+      let pi = PureAnd (Gt (t, Number 0), pi) in
+      let efF = derivative pi es1 fst in 
+      let esT_minus1 = Ttimes (es1,  Minus (t, Number 1)) in
+      appendEff_ES efF esT_minus1*)
+  | Cons (es1 , es2) ->  
+      if nullable es1 
+      then let efF = derivative pi es1 fst in 
+          let effL =  (appendEff_ES efF es2) in 
+          let effR =  (derivative pi es2 fst) in 
+          normalEffect (ifShouldDisj effL effR)
+      else let efF = derivative pi es1 fst in 
+          appendEff_ES efF es2    
+  | Choice (es1, es2) -> 
+      let temp1 =  (derivative pi es1 fst) in
+      let temp2 =  (derivative pi es2 fst) in 
+      normalEffect (ifShouldDisj temp1 temp2)
+  | RealTime (es1, rt) -> 
+    raise (Foo "deng yihui ")
+  | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
+ (*
+  | Par (es1 , es2) -> 
+    (match fst with 
+      (esfst, Some rt1) -> 
+        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
+        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
+        if (re1 && re2) then Effect (pi, Emp) 
+        else Effect (FALSE, Bot)
+    | _ -> Effect (FALSE, Bot)
+
+    )
+  | Par (RealTime rt, es1) -> 
+    (match fst with 
+      (esfst, Some rt1) -> 
+        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
+        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
+        if (re1 && re2) then Effect (pi, Emp) 
+        else Effect (FALSE, Bot)
+    | _ -> Effect (FALSE, Bot)
+
+    )
+ *)
+  | Par (_, _) -> raise (Foo "derivative par")
+
+;;
+
 
 let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
   
@@ -90,8 +142,8 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
 
   let rec checkDerivative (eff:effect) (fst:fst) : effect = 
     match eff with
-      Effect (pi, es) -> derivative pi es fst
-    | Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) 
+     (pi, es) -> derivative pi es fst
+    (*| Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) *)
   in 
 
   let unfold eff1 eff2 del = 
@@ -127,98 +179,16 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   else 
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
-    (Effect(FALSE, _), _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
-  | (Effect(_, Bot), _) -> (true, Node(showEntail ^ "   [Bot-LHS]", []),  evn)  
-  | (_, Effect(FALSE, _)) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
-  | (_, Effect(_, Bot)) -> (false,Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+    ((FALSE, _), _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
+  | ((_, Bot), _) -> (true, Node(showEntail ^ "   [Bot-LHS]", []),  evn)  
+  | (_, (FALSE, _)) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+  | (_, (_, Bot)) -> (false,Node(showEntail ^ "   [DISPROVE]", []),  evn)  
   | _ -> 
   
   unfold normalFormL normalFormR evn 
   
-and 
-derivative (pi :pure) (es:es) (fst:fst) : effect = 
-  match es with
-    Bot -> Effect (FALSE, Bot)
-  | Emp -> Effect (FALSE, Bot)
-  | Instance ins ->  
-      (match fst with 
-        (Instance ins1, _) -> 
-          if instansEntails ins1 ins then Effect (pi, Emp) 
-          else Effect (FALSE, Bot)
-      
-      |_ -> Effect (FALSE, Bot)
-      )
-  | Ttimes (es1, t) -> 
-      let pi = PureAnd (Gt (t, Number 0), pi) in
-      let efF = derivative pi es1 fst in 
-      let esT_minus1 = Ttimes (es1,  Minus (t, Number 1)) in
-      appendEff_ES efF esT_minus1
-  | Cons (es1 , es2) ->  
-      if nullable pi es1 
-      then let efF = derivative pi es1 fst in 
-          let effL =  (appendEff_ES efF es2) in 
-          let effR =  (derivative pi es2 fst) in 
-          normalEffect (ifShouldDisj effL effR)
-      else let efF = derivative pi es1 fst in 
-          appendEff_ES efF es2    
-  | Choice (es1, es2) -> 
-      let temp1 =  (derivative pi es1 fst) in
-      let temp2 =  (derivative pi es2 fst) in 
-      normalEffect (ifShouldDisj temp1 temp2)
-  | RealTime (es1, rt) -> 
-    (match fst with 
-        (esfst, rt1) -> 
-          let rtpure = realtimeToPure rt in 
-          let rt1pure = realtimeToPure rt1 in 
-          let (re, _ , _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in 
-          if entailConstrains rt1pure rtpure && re then Effect (pi, Emp) 
-          else Effect (FALSE, Bot)
-      |_ -> Effect (FALSE, Bot)
-      )
-  | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
- (*
-  | Par (es1 , es2) -> 
-    (match fst with 
-      (esfst, Some rt1) -> 
-        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
-        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
-        if (re1 && re2) then Effect (pi, Emp) 
-        else Effect (FALSE, Bot)
-    | _ -> Effect (FALSE, Bot)
+;;
 
-    )
-  | Par (RealTime rt, es1) -> 
-    (match fst with 
-      (esfst, Some rt1) -> 
-        let (re1, _, _) = containment [] (Effect(pi, esfst)) (Effect (pi, es1)) in
-        let (re2, _, _) = containment [] (Effect(pi, RealTime rt1)) (Effect (pi, RealTime rt)) in
-        if (re1 && re2) then Effect (pi, Emp) 
-        else Effect (FALSE, Bot)
-    | _ -> Effect (FALSE, Bot)
-
-    )
- *)
-  | Par (_, _) -> raise (Foo "derivative par")
-
-and 
-
-
-matchAsyncAwaitEs (pi:pure) (es:es) :effect  = 
-  match es with 
-  | Par (es1, es2) -> 
-    let es1_fst = fst TRUE es1 in 
-    let es1_der = derivative pi es1 (List.hd es1_fst) in 
-    let es2_fst = fst TRUE es2 in 
-    let es2_der = derivative pi es2 (List.hd es2_fst) in 
-    matchAsyncAwaitEffect es1_der
-
-and 
-
-matchAsyncAwaitEffect (eff:effect) : effect = 
-  match eff with 
-    Effect (pi, es) -> matchAsyncAwaitEs pi es
-  | Disj (eff1, eff2) -> Disj (matchAsyncAwaitEffect eff1, matchAsyncAwaitEffect eff2) 
-  ;;
 
 (* no mixed usage of t and || *)
 

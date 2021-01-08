@@ -72,9 +72,9 @@ type prog = Halt
           | Assert of effect
 (*JS ASYNC*)
 
-type prog_states = (pure * es * instance * name option) list
+type prog_states = (pure * es * instance * name option)
 
-type fst = instance list
+type fst = instance
 
 type ltl = Lable of string 
         | Next of ltl

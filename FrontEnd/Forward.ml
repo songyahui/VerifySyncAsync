@@ -500,17 +500,23 @@ let rec isPresent name curr : bool =
   | (_) :: xs -> isPresent name xs 
   ;;
 
+(*
+
 let rec append_es_to_effect es eff : effect = 
   match eff with 
     Effect (p , es1) -> Effect (p, Cons(es1, es))
   | Disj (eff1, eff2) -> Disj (append_es_to_effect es eff1, append_es_to_effect es eff2)
   ;;
   
+  *)
+  
 let rec append_ins_to_es (ins:instance)  (es:es) : es = 
   Cons(es, Instance ins)
   ;;
 
 let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
+  current
+  (*
   match prog with 
     Halt -> current
   | Yield -> 
@@ -600,31 +606,40 @@ let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_s
   | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
   | Await (mn) -> "await "^ mn 
   *)
+  *)
   ;;
 
 let rec append_instance_to_effect (eff:effect) (ins:instance) : effect = 
   match eff with 
-    Effect (pi, es) -> Effect (pi, Cons (es, Instance ins))
-  | Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)
+   (pi, es) ->  (pi, Cons (es, Instance ins))
+  (*| Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)*)
   ;;
+
+(*
 
 let rec splitEffects (eff:effect) : (pure*es) list = 
   match eff with 
     Effect (pi, es) -> [(pi, es)]
   | Disj (eff1, eff2) -> List.append (splitEffects eff1) (splitEffects eff2)
   ;;
+  
+  *)
 
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let initial_states = List.map (fun (a, b) -> (a, b, [], None)) (splitEffects pre) in 
+  let (pi, es) = pre in 
+  let initial_states = (pi, es, [], None) in 
   let prog_states = forward (*inp_sig*) initial_states prog full in 
-  let merge_states = List.fold_left 
-    (fun acc (pure, his, current, trap) -> Disj (acc, append_instance_to_effect (Effect(pure, his)) current))
-    (Effect(FALSE, Bot)) 
+  let merge_states = prog_states in 
+    (*
+    List.fold_left 
+    (fun acc (pure, his, current, trap) -> Disj (acc, append_instance_to_effect ((pure, his)) current))
+    ((FALSE, Bot)) 
     prog_states  in 
-  let (final:effect) = normalEffect merge_states in 
+    *)
+  let (final:effect) = ((FALSE, Bot))  (*normalEffect merge_states*) in 
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^
