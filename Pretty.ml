@@ -172,7 +172,7 @@ let rec showLTL (ltl:ltl):string =
 
 
 
-
+(*
 let rec string_of_realtime (rt:realtime):string = 
   match rt with 
     Anytime -> ""
@@ -182,6 +182,7 @@ let rec string_of_realtime (rt:realtime):string =
   | RTAnd (rt1, rt2) -> string_of_realtime rt1 ^ "/\\" ^ string_of_realtime rt2
   | RTOr (rt1, rt2) -> string_of_realtime rt1 ^ "\\/" ^ string_of_realtime rt2
 ;;
+*)
 
 let rec string_of_es (es:es) :string = 
   match es with 
@@ -190,8 +191,8 @@ let rec string_of_es (es:es) :string =
   | Instance ins  -> string_of_instance ins
   | Cons (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
-  | Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t 
-  | RealTime (es, rt)-> "(" ^ string_of_es es ^ "#" ^string_of_realtime rt^")"
+  (*| Ttimes (esIn, t) ->"(" ^ string_of_es esIn ^ ")" ^ string_of_terms t *)
+  | RealTime (es, t)-> "(" ^ string_of_es es ^ "#" ^string_of_terms t^")"
   | Choice (es1, es2) -> "("^string_of_es es1 ^ " + " ^ string_of_es es2^")"
   | Par (es1, es2) -> "("^string_of_es es1 ^ " || " ^ string_of_es es2^")"
   ;;
@@ -214,8 +215,8 @@ let rec string_of_pure (p:pure):string =
 
 let rec string_of_effect(eff:effect): string = 
   match eff with 
-    Effect (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
-  | Disj (es1, es2) -> string_of_effect es1 ^ " \\/ " ^ string_of_effect es2
+    (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
+  
 ;;
 
 
@@ -333,6 +334,7 @@ let rec deleteRedundent sl : instance =
 
   ;;
 
+(*
 let rec realtimeToPure (rt:realtime) :pure = 
   match rt with 
   | Anytime -> TRUE
@@ -342,18 +344,19 @@ let rec realtimeToPure (rt:realtime) :pure =
   | RTAnd (rt1, rt2) -> PureAnd (realtimeToPure rt1, realtimeToPure rt2)
   | RTOr (rt1, rt2) -> PureOr (realtimeToPure rt1, realtimeToPure rt2)
 ;;
+*)
 
-let rec nullable (pi :pure) (es:es) : bool=
+let rec nullable (es:es) : bool=
   match es with 
     Bot -> false 
   | Emp -> true
   | Instance _  -> false 
-  | Cons (es1, es2) -> (nullable pi es1) && (nullable pi es2)
+  | Cons (es1, es2) -> (nullable es1) && (nullable es2)
   | Kleene _ -> false (* now kleene represents infinite trace *)  
-  | Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) 
-  | RealTime (es, rt) ->  nullable pi es (* askZ3 (realtimeToPure rt )*)
-  | Choice (es1, es2) -> (nullable pi es1) || (nullable pi es2)
-  | Par (es1, es2) -> (nullable pi es1) && (nullable pi es2)
+  (*| Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) *)
+  | RealTime (es, rt) ->  nullable es (* askZ3 (realtimeToPure rt )*)
+  | Choice (es1, es2) -> (nullable es1) || (nullable es2)
+  | Par (es1, es2) -> (nullable es1) && (nullable es2)
   ;;
 
 let rec normalTerms (t:terms):terms  = 
@@ -412,6 +415,7 @@ let instansEntails (ins1:instance) (ins2:instance) :bool =
 
   ;;
 
+(*
 let rec compareRealTime rt1 rt2 = 
   match (rt1, rt2) with 
     (EqConst n1, EqConst n2) -> n1 == n2
@@ -420,6 +424,7 @@ let rec compareRealTime rt1 rt2 =
 
   | _ -> raise (Foo "not yet defined compareRealTime")
   ;;
+*)
 
 let rec compareES es1 es2 = 
   (*
@@ -445,30 +450,33 @@ let rec compareES es1 es2 =
       let one = ((compareES es1L es2L) && (compareES es1R es2R)) in
       let two =  ((compareES es1L es2R) && (compareES es1R es2L)) in 
       one || two
-      *)
+
   | (Ttimes (esL, termL), Ttimes (esR, termR)) -> 
       let insideEq = (compareES esL esR) in
       let termEq = compareTerm termL termR in
       insideEq && termEq
+      *)
   | (Kleene esL, Kleene esR) -> compareES esL esR
-  | (RealTime (es1, rt1), RealTime (es2, rt2) ) -> compareES es1 es2 && compareRealTime rt1 rt2
+  | (RealTime (es1, rt1), RealTime (es2, rt2) ) -> compareES es1 es2 && compareTerm rt1 rt2
   | _ -> false
 ;;
 
 
 let rec compareEff eff1 eff2 =
   match (eff1, eff2) with
-  | (Effect(FALSE, _ ), Effect(FALSE, _)) -> true 
-  | (Effect(FALSE, _ ), Effect(_, Bot )) -> true 
-  | (Effect(_, Bot), Effect(FALSE, _ )) -> true 
-  | (Effect(_, Bot ), Effect(_, Bot)) -> true 
+  | ((FALSE, _ ), (FALSE, _)) -> true 
+  | ((FALSE, _ ), (_, Bot )) -> true 
+  | ((_, Bot), (FALSE, _ )) -> true 
+  | ((_, Bot ), (_, Bot)) -> true 
 
-  | (Effect (pi1, es1), Effect (pi2, es2 )) -> compareES es1 es2
-  | (Disj (eff11, eff12), Disj (eff21, eff22)) -> 
+  | ( (pi1, es1),  (pi2, es2 )) -> compareES es1 es2
+(*| (Disj (eff11, eff12), Disj (eff21, eff22)) -> 
       let one =  (compareEff eff11  eff21) && (compareEff eff12  eff22) in
       let two =  (compareEff eff11  eff22) && (compareEff eff12  eff21 ) in
       one || two
-  | _ -> false
+        | _ -> false
+      *)
+
   ;;
 
 let rec compareTerm (term1:terms) (term2:terms) : bool = 
@@ -531,7 +539,7 @@ let rec normalES (es:es) (pi:pure):es =
     Bot -> es
   | Emp -> es
   | Instance ins -> Instance ins  (*logical tick*)
-  | RealTime (es, rt) -> if askZ3 (realtimeToPure rt ) then Bot else es
+  | RealTime (es, rt) -> RealTime (normalES es pi, rt) 
   | Cons (Cons (esIn1, esIn2), es2)-> normalES (Cons (esIn1, Cons (esIn2, es2))) pi
   | Cons (es1, es2) -> 
       let normalES1 = normalES es1 pi in
@@ -588,7 +596,7 @@ let rec normalES (es:es) (pi:pure):es =
 
 
 
-
+(*
   | Ttimes (es1, terms) -> 
       let t = normalTerms terms in 
       let normalInside = normalES es1 pi in 
@@ -601,7 +609,7 @@ let rec normalES (es:es) (pi:pure):es =
             Number num -> concertive normalInside num 
           | _ -> Ttimes (normalInside, t))
         (*else if (existPi (Eq (terms, n)) allPi)) then Emp else Ttimes (normalInside, t))*)
-
+*)
   | Kleene es1 -> 
       let normalInside = normalES es1 pi in 
       (match normalInside with
@@ -686,21 +694,25 @@ let rec normalPure (pi:pure):pure =
 
 let rec normalEffect (eff:effect) : effect =
   match eff with
-    Effect (p, es) -> 
+   (p, es) -> 
       if (askZ3 p) == false then 
         ( 
           (*print_string (showPure p^"   "^ showES es^ "\n 11********\n");*)
-          Effect (FALSE, es)
+         (FALSE, es)
         )
       else 
       
         let p_normal = normalPure p in 
         let es_normal  = normalES es p in
+        ( p_normal, es_normal)
+       (*
         (match es_normal with 
-          Choice (es_nor1, es_nor2) -> Disj (Effect (p_normal, es_nor1), Effect (p_normal, es_nor2))
-        | _ -> Effect ( p_normal, es_normal)
+          Choice (es_nor1, es_nor2) -> Choice ( (p_normal, es_nor1),  (p_normal, es_nor2))
+        | _ -> Effect 
         )
-  | Disj (eff1, eff2) -> 
+       *)
+  
+  (*      | Disj (eff1, eff2) -> 
       let normaedEff1 = normalEffect eff1 in 
       let normaedEff2 = normalEffect eff2 in 
       match (normaedEff1, normaedEff2 ) with
@@ -717,4 +729,5 @@ let rec normalEffect (eff:effect) : effect =
         else Disj (norml_eff2, Disj(eff1In, eff2In))
 
       | _ -> Disj (normaedEff1, normaedEff2)
+      *)
   ;;

@@ -71,12 +71,14 @@ term:
 
 | LPAR a = term PLUS b = term RPAR {Plus (a, b)}
 
+(*
 realtime:
 | EQ a = INTE {EqConst a}
 | GT a = INTE {Greater a}
 | LT a = INTE {LessThan a}
 | a = realtime CONJ b = realtime {RTAnd (a, b)}
 | a = realtime DISJ b = realtime {RTOr (a, b)}
+*)
 
 pure:
 | TRUE {TRUE}
@@ -101,25 +103,20 @@ es:
   Instance (signals) }
   
 | LPAR r = es RPAR { r }
-| a = es SHARP b = realtime {RealTime (a, b) }
+| a = es SHARP b = term {RealTime (a, b) }
 | a = es CONCAT b = es { Cons(a, b) } 
 | a = es DISJ b = es { Choice(a, b) } 
 | a = es PAR b = es {Par (a, b )}
 | LPAR a = es RPAR POWER KLEENE {Kleene a}
-| LPAR r = es RPAR n = term { Ttimes (r,  n) }
+
+(*| LPAR r = es RPAR n = term { Ttimes (r,  n) }
+*)
 
 effect:
 | LPAR r = effect RPAR { r }
-| a = pure  CONJ  b= es  {Effect (a, b)}
-| a = effect  DISJ  b=effect  {Disj (a,b)}
+| a = pure  CONJ  b= es  {(a, b)}
 | LPAR LBrackets nn= existVar RBrackets  eff= effect RPAR{
-  let rec helper (eff:effect) :effect = 
-  (match eff with 
-    Effect (p, es) -> Effect (p, es) 
-  | Disj (eff1, eff2) ->  Disj (helper eff1, helper eff2)  
-  )
-  in 
-  helper eff}
+  eff}
 
 expectation:
 | TRUEE {true}
@@ -195,5 +192,5 @@ specProg:
 
   {
     let (ins, out) = augur in 
-    (nm, ins, out, Effect (TRUE, Emp), Effect (TRUE, Emp), p)}
+    (nm, ins, out, (TRUE, Emp), (TRUE, Emp), p)}
 

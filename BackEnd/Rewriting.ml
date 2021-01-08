@@ -8,29 +8,33 @@ open Pretty
 open Sys
 open Askz3
 
-let rec fst (pi :pure) (es:es): fst list = 
+let rec fst (es:es): fst= 
   match es with
     Bot -> []
   | Emp -> []
-  | Instance ins ->  [(Instance ins, Anytime)]
-  | Ttimes (es1, t) -> fst pi es1
-  | Cons (es1 , es2) ->  if nullable pi es1 then append (fst pi es1) (fst pi es2) else fst pi es1
-  | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
-  | RealTime (es1, rt) -> [(es1, rt)]
-  | Kleene es1 -> fst pi es1
-  | Par (es1 , es2) -> List.append (fst pi es1) (fst pi es2)
+  | Instance ins ->  [(ins)]
+  | Cons (es1 , es2) ->  if nullable es1 then append (fst  es1) (fst  es2) else fst  es1
+  | Choice (es1, es2) -> append (fst  es1) (fst  es2)
+  | RealTime (es1, rt) -> fst es1
+  | Kleene es1 -> fst  es1
+  | Par (es1 , es2) -> raise (Foo " should not be having par here")
+  (*| Ttimes (es1, t) -> fst pi es1*)
 ;;
 
 
 
 let rec appendEff_ES eff es = 
   match eff with 
-    Effect (p , es_eff) ->  Effect(p, Cons (es_eff, es))
-  | Disj (eff1 , eff2)  ->  Disj (appendEff_ES eff1 es, appendEff_ES eff2 es)
+    (p , es_eff) -> (p, Cons (es_eff, es))
   
-  (*raise ( Foo "appendEff_ES exception!")*)
+  (*
+  
+   | Disj (eff1 , eff2)  ->  Disj (appendEff_ES eff1 es, appendEff_ES eff2 es)
+ 
+  raise ( Foo "appendEff_ES exception!")*)
   ;;
 
+(*
 let ifShouldDisj (temp1:effect) (temp2:effect) : effect = 
   match (temp1, temp2) with
       (Effect(pure1, evs1), Effect(pure2, evs2)) -> 
@@ -39,31 +43,32 @@ let ifShouldDisj (temp1:effect) (temp2:effect) : effect =
       | _ -> 
       Disj (temp1, temp2 )
   ;;
+*)
 
 
 
 
-
-let rec checkFst (eff:effect) : fst list = 
+let rec checkFst (eff:effect) : fst = 
   match eff with
-    Effect (pi, es) -> fst pi es
-  | Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) 
+   (pi, es) -> fst es
+  (*| Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) *)
  ;;
 
 let rec nullableEffect (eff:effect) : bool = 
   match eff with 
-    Effect (pi, es) -> nullable pi es
-  | Disj (eff1, eff2) -> (nullableEffect eff1) || (nullableEffect eff2) 
+   (pi, es) -> nullable es
+  (*| Disj (eff1, eff2) -> (nullableEffect eff1) || (nullableEffect eff2) *)
  ;;
 
 let rec entailEffects (eff1:effect) (eff2:effect) : bool = 
   match (eff1, eff2) with 
-    (Effect (p1, es1), Effect (p2, es2)) -> 
+    ( (p1, es1),  (p2, es2)) -> 
       if comparePure p1 p2 && compareES es1 es2 then true 
       else false 
-  | (Disj (f1, f2), Disj (f3, f4)) -> 
+  (*| (Disj (f1, f2), Disj (f3, f4)) -> 
   (entailEffects f1 f3 && entailEffects f2 f4) || (entailEffects f2 f3 && entailEffects f1 f4)
   | _ -> false 
+  *)
 ;;
 
 let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool = 
@@ -215,7 +220,7 @@ matchAsyncAwaitEffect (eff:effect) : effect =
   | Disj (eff1, eff2) -> Disj (matchAsyncAwaitEffect eff1, matchAsyncAwaitEffect eff2) 
   ;;
 
-
+(* no mixed usage of t and || *)
 
 let check_containment lhs rhs : (bool * binary_tree *  inclusion list) = 
   (*

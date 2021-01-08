@@ -5,13 +5,15 @@ type lable = string
 type signal = One of name | Zero of name | Wait of name 
 
 (*signal set*)
-type instance = (signal) list ;;
+type instance = signal list ;;
 
 
 type terms = Var of name
            | Number of int
            | Plus of terms * terms
            | Minus of terms * terms
+
+(*
 
 type realtime = 
            | Anytime 
@@ -22,17 +24,16 @@ type realtime =
            | RTOr  of realtime * realtime
 
 
+*)
+
 type es = Bot 
         | Emp 
         | Instance of instance (*logical tick*)
         | Cons of es * es
         | Choice of es * es
         | Par of es * es 
-        | RealTime of es * realtime (*real time tick*)
-        | Ttimes of es * terms
+        | RealTime of es * terms (*real time tick*)
         | Kleene of es 
-        
-type fst = es * realtime
 
 (*Arithimetic pure formulae*)
 type pure = TRUE
@@ -46,10 +47,7 @@ type pure = TRUE
           | PureAnd of pure * pure
           | Neg of pure
 
-type effect = 
-            Effect of pure * es
-          | Disj of effect * effect
-
+type effect = (pure * es)
 
 type inclusion = effect * effect;;
 
@@ -75,6 +73,8 @@ type prog = Halt
 (*JS ASYNC*)
 
 type prog_states = (pure * es * instance * name option) list
+
+type fst = instance list
 
 type ltl = Lable of string 
         | Next of ltl
