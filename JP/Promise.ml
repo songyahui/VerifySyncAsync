@@ -6,6 +6,9 @@ type ('a, 'b) promise = Pending of ('a reaction list * 'b reaction list) | F of 
 
 type ('a) queue = ('a * 'a reaction lazy_t)  list
 
+type queue1 = (unit lazy_t) list
+
+
 let (pi: int queue ref) = ref [] ;;
 
 let default = fun a -> a; ();;
