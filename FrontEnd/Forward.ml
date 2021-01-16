@@ -262,9 +262,17 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   | Await (s) -> 
     (pi, Cons (his,Instance cur) , setState cur s 2, k) (* flag 0 - Zero, 1- One, 2-Wait *)
 
+  | Present (s, p1, p2) ->
+    if isPresent s cur then forward env current p1 full 
+    else forward env current p2 full 
+
+  | Declear (s , p) -> forward (List.append env [s]) current p full 
+    
+  
 
 
     (*
+    | Async (s, p, delay) ->
       
     let helper (pure, his, curr, trap) = 
       match trap with
@@ -286,21 +294,13 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     
     in  List.flatten (List.map (helper) current)
 
-  | Declear (_ , p) -> forward current prog full
+  
   | If (pi, p1, p2) -> 
     let left = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, pi), his, curr, trap )) current) p1 full in 
     let right = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, Neg pi), his, curr, trap )) current) p2 full in 
     List.append left right
 
-  | Present (name, p1, p2) ->
-    let helper (pure, his, curr, trap) = 
-      match trap with
-      | Some name -> [(pure, his, curr, trap)]
-      | None -> if isPresent name curr then 
-                forward [(pure, his, curr, trap)] p1 full 
-                else forward [(pure, his, curr, trap)] p2 full 
-
-    in List.flatten (List.map (helper) current)
+  
   
   | Trap (mn, prog) -> 
       List.flatten (List.map (fun (pure, his, cur, trap)-> 
