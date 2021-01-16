@@ -159,10 +159,10 @@ pRog:
 | LPAR p1 = pRog RPAR PAR LPAR p2 = pRog RPAR{ Fork (p1, p2)}
 
 
-argueVAR: var = VAR {([(Zero var)], [(Zero var)])}
-| IN var = VAR {([(Zero var)], [])}
-| OUT var = VAR {([], [(Zero var)])}
-| INOUT var = VAR {([(Zero var)], [(Zero var)])}
+argueVAR: var = VAR {([( var)], [( var)])}
+| IN var = VAR {([( var)], [])}
+| OUT var = VAR {([], [( var)])}
+| INOUT var = VAR {([( var)], [( var)])}
 
 argueListVar:
 | {([], [])}

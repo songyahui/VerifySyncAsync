@@ -87,5 +87,5 @@ type ltl = Lable of string
         | OrLTL of ltl * ltl
 
 
-type spec_prog = name * instance * instance * effect * effect * prog
+type spec_prog = name * string list * string list * effect * effect * prog
               (* name , input,     output, precon, postcon, body*)

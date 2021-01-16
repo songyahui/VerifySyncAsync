@@ -514,25 +514,21 @@ let rec append_ins_to_es (ins:instance)  (es:es) : es =
   Cons(es, Instance ins)
   ;;
 
-let rec forward (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
-  current
-  (*
+let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
+  let (pi, his, cur, k) = current in 
   match prog with 
     Halt -> current
   | Yield -> 
-    let helper (pure, his, curr, trap) = 
-      match trap with
-      | Some name -> (pure, his, curr, trap)
-      | None -> (pure, append_ins_to_es curr his, [], trap)
-    in List.map (helper) current
+    (pi, Cons (his,Instance cur) , [], k)
 
-  | Emit (s) -> 
+
+    (*
+      | Emit (s) -> 
     let helper (pure, his, curr, trap) = 
       match trap with
       | Some name -> (pure, his, curr, trap)
       | None -> (pure, his, List.append curr [(One s)], trap)
     in List.map (helper) current
-  
   | Seq (p1, p2) ->  
     let helper (pure, his, curr, trap) = 
       match trap with
@@ -631,9 +627,10 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
   let (pi, es) = pre in 
   let initial_states = (pi, es, [], None) in 
-  let prog_states = forward (*inp_sig*) initial_states prog full in 
-  let merge_states = prog_states in 
+  let prog_states = forward oup_sig initial_states prog full in 
+  
     (*
+    let merge_states = prog_states in 
     List.fold_left 
     (fun acc (pure, his, current, trap) -> Disj (acc, append_instance_to_effect ((pure, his)) current))
     ((FALSE, Bot)) 

@@ -261,8 +261,8 @@ let string_of_spec_prog (inp:spec_prog):string =
   let body = string_of_prog p in 
   let spec = "\n/*@\nrequire " ^ string_of_effect pre ^"\nensure " ^ string_of_effect post ^"\n@*/\n\n" in 
   
-  let inp = "input " ^ string_of_sl ins (*(List.fold_left (fun acc a -> acc ^ " " ^ a) "" ins) ^ ";\n" *)in 
-  let outp = "output " ^ string_of_sl outs (* (List.fold_left (fun acc a -> acc ^ " " ^ a) "" outs) ^ ";\n"*) in 
+  let inp = "input " ^ (*string_of_sl ins*) (List.fold_left (fun acc a -> acc ^ " " ^ a) "" ins) ^ ";\n" in 
+  let outp = "output " ^ (*string_of_sl outs*)  (List.fold_left (fun acc a -> acc ^ " " ^ a) "" outs) ^ ";\n" in 
   let whole = "module " ^ nm  ^": \n\n" ^ inp ^ outp ^ spec ^ body ^ "\n\nend module" in 
   whole ;;
 
