@@ -212,6 +212,12 @@ let equla_List_of_State left right : bool=
 
 *)
 
+let counter = ref 0;;
+
+let getAnewVar = 
+  counter := ! counter + 1; 
+  "t" ^ string_of_int !counter;;
+
 let setState (xs:instance) (s:string) (flag:int):instance =  (* flag 0 - Zero, 1- One, 2-Wait *)
   let rec helper li acc = 
   match li with 
@@ -268,11 +274,14 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
   | Declear (s , p) -> forward (List.append env [s]) current p full 
     
-  
+  | Async (s, p, delay) -> 
+    let (pi1, his1, cur1, k1) = forward env current p full in 
+    (PureAnd (pi1, GtEq (Var getAnewVar, Number delay)), his1, setState cur1 s 1, k1)
+
 
 
     (*
-    | Async (s, p, delay) ->
+    
       
     let helper (pure, his, curr, trap) = 
       match trap with
