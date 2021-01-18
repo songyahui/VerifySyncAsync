@@ -283,6 +283,27 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     if re then current 
     else raise (Foo "assertion failed")
 
+  | Seq (p1, p2) -> 
+    let (pi1, his1, cur1, k1) = forward env current p1 full in 
+    (match k1 with 
+      Some str -> (pi1, his1, cur1, k1) 
+    | None -> forward env (pi1, his1, cur1, k1) p2 full
+    )
+
+  | Trap (mn, p1) -> 
+    let (pi1, his1, cur1, k1) = forward env current p1 full in 
+    (match k1 with 
+      Some str -> if String.compare str mn == 0 then (pi1, his1, cur1, None) else (pi1, his1, cur1, k1)
+    | None -> (pi1, his1, cur1, k1)
+    )
+
+  | Break name -> 
+    (match k with 
+      Some str -> (pi, his, cur, k)
+    | None -> (pi, his, cur, Some name)
+    )
+
+
 
 
     (*
