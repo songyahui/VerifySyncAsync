@@ -276,7 +276,8 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     
   | Async (s, p, delay) -> 
     let (pi1, his1, cur1, k1) = forward env current p full in 
-    (PureAnd (pi1, GtEq (Var getAnewVar, Number delay)), his1, setState cur1 s 1, k1)
+    let term = Var getAnewVar in 
+    (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), setState (make_nothing env) s 1, k1)
 
   | Assert eff -> 
     let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) eff in 
@@ -303,6 +304,13 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     | None -> (pi, his, cur, Some name)
     )
 
+  | Abort (delay, p) ->
+    let (pi1, his1, cur1, k1) = forward env current p full in 
+    let term = Var getAnewVar in 
+    (PureAnd (pi1, Lt (term, Number delay)), RealTime (Cons (his1, Instance cur1),  term) , make_nothing env, k1)
+
+
+  
 
 
 
