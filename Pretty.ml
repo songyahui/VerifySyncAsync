@@ -235,8 +235,8 @@ let rec string_of_prog (p : prog) : string =
     | Some (n) -> "(" ^ string_of_int n ^")"
   *) 
   | Present (s, p1, p2) -> "present " ^ s ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
-  | If (p, p1, p2) -> "if " ^ string_of_pure p ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
-
+  (*| If (p, p1, p2) -> "if " ^ string_of_pure p ^ "\nthen " ^ string_of_prog p1 ^"\nelse " ^ string_of_prog p2 ^"\nend present"
+*)
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 
   | Run mn -> "run " ^ mn

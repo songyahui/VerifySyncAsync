@@ -278,6 +278,11 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     let (pi1, his1, cur1, k1) = forward env current p full in 
     (PureAnd (pi1, GtEq (Var getAnewVar, Number delay)), his1, setState cur1 s 1, k1)
 
+  | Assert eff -> 
+    let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) eff in 
+    if re then current 
+    else raise (Foo "assertion failed")
+
 
 
     (*
