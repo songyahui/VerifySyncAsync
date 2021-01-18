@@ -264,6 +264,10 @@ let rec append_ins_to_es (ins:instance)  (es:es) : es =
   Cons(es, Instance ins)
   ;;
 
+let parallelES es1 es2 : (es * instance)=
+  (Emp, [])
+  ;;
+
 let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
   let (pi, his, cur, k) = current in 
   match prog with 
@@ -321,11 +325,26 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
       let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) precon in 
       let (pi1, es1) = precon in 
       if re then (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), es1), make_nothing env, k)
-      else raise (Foo "precondiction check failed")
-       
+      else raise (Foo "precondiction check failed")    
   
+  | Loop p ->
+    let (pi1, his1, cur1, k1) = forward env (pi, Emp, cur, k) p full in 
+    (match k1 with 
+      Some trap -> (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), his1), cur1, k1)
+    | None -> (pi1, Cons (his, Kleene (Cons (his1, Instance cur1))), make_nothing env, k1)
+    )
 
-
+  | Fork (p1, p2) -> 
+    let (pi1, his1, cur1, k1) = forward env (pi, Emp, cur, k) p1 full in 
+    let (pi2, his2, cur2, k2) = forward env (pi, Emp, cur, k) p2 full in 
+    match (k1, k2) with
+      (None, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, None)
+    | (Some trap, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k1)
+    | (None, Some trap) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k2)
+    | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
 
     (*
     
