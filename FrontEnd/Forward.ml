@@ -252,6 +252,13 @@ let rec append_es_to_effect es eff : effect =
   ;;
   
   *)
+let rec findProg name full:spec_prog = 
+  match full with 
+  | [] -> raise (Foo ("function " ^ name ^ " is not found!"))
+  | x::xs -> let (str, _, _, _, _, _) = x in 
+              if String.compare str name == 0 then x 
+              else findProg name xs
+;;
   
 let rec append_ins_to_es (ins:instance)  (es:es) : es = 
   Cons(es, Instance ins)
@@ -309,7 +316,13 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     let term = Var getAnewVar in 
     (PureAnd (pi1, Lt (term, Number delay)), RealTime (Cons (his1, Instance cur1),  term) , make_nothing env, k1)
 
-
+  | Run mn ->
+      let (fun_name, inp, outp, precon, postcon, _) = findProg mn full in 
+      let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) precon in 
+      let (pi1, es1) = precon in 
+      if re then (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), es1), make_nothing env, k)
+      else raise (Foo "precondiction check failed")
+       
   
 
 
@@ -342,30 +355,6 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     let left = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, pi), his, curr, trap )) current) p1 full in 
     let right = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, Neg pi), his, curr, trap )) current) p2 full in 
     List.append left right
-
-  
-  
-  | Trap (mn, prog) -> 
-      List.flatten (List.map (fun (pure, his, cur, trap)-> 
-      match trap with 
-        Some _ -> [(pure, his, cur, trap)]
-      | None -> 
-          let eff = forward [(pure, his, cur, trap)] prog full in 
-          List.map (fun (pureIn, hisIn, curIn, trapIn)->
-          match trapIn with 
-            Some name -> if String.compare mn name == 0 then (pure, hisIn, curIn, None)
-                         else (pureIn, hisIn, curIn, trapIn)
-          | None -> (pureIn, hisIn, curIn, trapIn)
-          )
-          eff
-      )current)
-
-  | Break name -> 
-      List.map (fun (pure, his, cur, trap)-> 
-      match trap with 
-        Some _ -> (pure, his, cur, trap)
-      | None -> (pure, his, cur, Some name)
-      )current
 
 
   | _ -> current
