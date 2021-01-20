@@ -420,16 +420,8 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
   let (pi, es) = pre in 
   let initial_states = (pi, es, [], None) in 
-  let prog_states = forward oup_sig initial_states prog full in 
-  
-    (*
-    let merge_states = prog_states in 
-    List.fold_left 
-    (fun acc (pure, his, current, trap) -> Disj (acc, append_instance_to_effect ((pure, his)) current))
-    ((FALSE, Bot)) 
-    prog_states  in 
-    *)
-  let (final:effect) = ((FALSE, Bot))  (*normalEffect merge_states*) in 
+  let (pi, his, cur, k) = forward oup_sig initial_states prog full in 
+  let (final:effect) = ((pi, Cons (his, Instance cur)))  (*normalEffect merge_states*) in 
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^
