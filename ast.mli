@@ -73,7 +73,7 @@ type prog = Halt
 
 type prog_states = (pure * es * instance * name option)
 
-type fst = instance
+type fst = (instance * terms * pure)
 
 type ltl = Lable of string 
         | Next of ltl

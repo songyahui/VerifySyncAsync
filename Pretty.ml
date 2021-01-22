@@ -13,7 +13,17 @@ open Askz3
 exception Foo of string
 
 
+let counter = ref 0;;
 
+let getAnewVar = 
+  counter := ! counter + 1; 
+  "t" ^ string_of_int !counter;;
+
+let counter_rewriting = ref 0;;
+
+let getAnewVar_rewriting = 
+  counter_rewriting := ! counter_rewriting + 1; 
+  "tv" ^ string_of_int !counter_rewriting;;
 
 (*used to generate the free veriables, for subsititution*)
 let freeVar = ["t1"; "t2"; "t3"; "t4";"t5";"t6";"t7";"t8";"t9";"t10"

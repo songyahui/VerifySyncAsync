@@ -8,18 +8,57 @@ open Pretty
 open Sys
 open Askz3
 
-let rec fst (es:es): fst list= 
+let rec zip (ls:'a list * 'b list) : ('a * 'b) list =
+  let (xs,ys) = ls in
+  match (xs,ys) with
+      ([],_) -> []
+    | (_,[]) -> []
+    | (x::xrest, y::yrest) -> (x,y)::zip (xrest,yrest)
+;;
+
+let rec fst_simple (es:es): instance list= 
   match es with
     Bot -> []
   | Emp -> []
   | Instance ins ->  [(ins)]
-  | Cons (es1 , es2) ->  if nullable es1 then append (fst  es1) (fst  es2) else fst  es1
-  | Choice (es1, es2) -> append (fst  es1) (fst  es2)
-  | RealTime (es1, rt) -> fst es1
-  | Kleene es1 -> fst  es1
-  | Par (es1 , es2) -> raise (Foo " should not be having par here")
-  (*| Ttimes (es1, t) -> fst pi es1*)
+  | Cons (es1 , es2) ->  if nullable es1 then append (fst_simple  es1) (fst_simple  es2) else fst_simple  es1
+  | Choice (es1, es2) -> append (fst_simple  es1) (fst_simple  es2)
+  | RealTime (es1, rt) -> fst_simple es1
+  | Kleene es1 -> fst_simple  es1
+  | Par (es1 , es2) -> 
+    let fst1 = fst_simple es1 in
+    let fst2 = fst_simple es2 in
+    let combine = zip (fst1,  fst2) in 
+    List.map (fun (a, b) -> List.append a b) combine
 ;;
+
+let rec fst (pi:pure) (es:es): fst list =
+  match es with
+    Bot -> []
+  | Emp -> []
+  | Instance ins ->  
+    let newTV = getAnewVar_rewriting in
+    [(ins, Var newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
+  | Cons (es1 , es2) ->  if nullable es1 then append (fst pi es1) (fst pi es2) else fst pi es1
+  | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
+  | RealTime (es1, rt) -> 
+    let ins_List = fst_simple es1 in 
+    List.map 
+    (fun ins ->
+      let newTV = getAnewVar_rewriting in
+      (ins, Var newTV, PureAnd (PureAnd (pi, GtEq (Var newTV, Number 0)), Lt (Var newTV, rt)))
+    
+    ) ins_List
+  | Kleene es1 -> fst pi es1
+  | Par (es1 , es2) -> 
+    let fst1 = fst pi es1 in
+    let fst2 = fst pi  es2 in
+    let combine = zip (fst1,  fst2) in 
+    List.map (fun ((a, term1, pi1) , (b, term2, pi2)) -> 
+      (List.append a b, term1, PureAnd(PureAnd(pi1, pi2), Eq(term1, term2) )))
+       combine
+;;
+
 
 
 
@@ -46,7 +85,7 @@ let ifShouldDisj (temp1:effect) (temp2:effect) : effect =
 
 let rec checkFst (eff:effect) : fst list = 
   match eff with
-   (pi, es) -> fst es
+   (pi, es) -> fst pi es
   (*| Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) *)
  ;;
 
@@ -105,7 +144,16 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       let temp2 =  (derivative pi es2 fst) in 
       normalEffect (ifShouldDisj temp1 temp2)
   | RealTime (es1, rt) -> 
-    raise (Foo "deng yihui ")
+    let (pi1, es2) = normalEffect (derivative pi es1 fst) in 
+    match pi1 with 
+      Bot ->  (FALSE, Bot)
+    | Emp ->  
+    let newVar1 = getAnewVar_rewriting in 
+    let newVar2 = getAnewVar_rewriting in 
+    riase (Foo "RealTime")
+    
+
+
   | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
  (*
   | Par (es1 , es2) -> 

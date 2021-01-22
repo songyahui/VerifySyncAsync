@@ -212,11 +212,7 @@ let equla_List_of_State left right : bool=
 
 *)
 
-let counter = ref 0;;
 
-let getAnewVar = 
-  counter := ! counter + 1; 
-  "t" ^ string_of_int !counter;;
 
 let setState (xs:instance) (s:string) (flag:int):instance =  (* flag 0 - Zero, 1- One, 2-Wait *)
   let rec helper li acc = 
