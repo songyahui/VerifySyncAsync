@@ -117,12 +117,13 @@ let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool =
   ;;
 
 let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
+  let (fst_ins, fst_terms, fst_pure) = fst in 
   match es with
     Bot ->  (FALSE, Bot)
   | Emp ->  (FALSE, Bot)
   | Instance ins ->  
 
-          if instansEntails fst ins then (pi, Emp) 
+          if instansEntails fst_ins ins then (pi, Emp) 
           else (FALSE, Bot)
       
 
@@ -143,14 +144,13 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       let temp1 =  (derivative pi es1 fst) in
       let temp2 =  (derivative pi es2 fst) in 
       normalEffect (ifShouldDisj temp1 temp2)
+  | RealTime (Instance insR, rt) -> 
+      if instansEntails fst_ins insR then (pi, Emp) 
+      else (FALSE, Bot)
+
+    
   | RealTime (es1, rt) -> 
-    let (pi1, es2) = normalEffect (derivative pi es1 fst) in 
-    match pi1 with 
-      Bot ->  (FALSE, Bot)
-    | Emp ->  
-    let newVar1 = getAnewVar_rewriting in 
-    let newVar2 = getAnewVar_rewriting in 
-    riase (Foo "RealTime")
+    raise (Foo "not yet")
     
 
 
