@@ -46,7 +46,7 @@ let rec fst (pi:pure) (es:es): fst list =
     List.map 
     (fun ins ->
       let newTV = getAnewVar_rewriting in
-      (ins, Var newTV, PureAnd (PureAnd (pi, GtEq (Var newTV, Number 0)), Lt (Var newTV, rt)))
+      (ins, Var newTV, PureAnd (PureAnd (pi, GtEq (Var newTV, Number 0)), GtEq (Var newTV, rt)))
     
     ) ins_List
   | Kleene es1 -> fst pi es1
@@ -115,8 +115,23 @@ let rec getVarFromTerms (t:terms): string list =
   ;;
 
 let rec getPureForTerms (fst_terms:terms) (fst_pure: pure) : pure = 
-  let var_List = getVarFromTerms fst_terms in 
-  FALSE
+  (*let var_List = getVarFromTerms fst_terms in 
+  let rec helper pi acc = 
+    match pi with 
+      TRUE -> acc 
+    | FALSE -> acc
+    | Gt (t1, t2) -> List.fold 
+    | Lt of terms * terms
+    | GtEq of terms * terms
+    | LtEq of terms * terms
+    | Eq of terms * terms
+    | PureOr of pure * pure
+    | PureAnd of pure * pure
+    | Neg of pure
+
+  in helper fst_pure TRUE
+  *)
+  fst_pure
 
   ;;
 
@@ -164,7 +179,12 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
         let pure1 = getPureForTerms fst_terms fst_pure in 
         let pure2 = getPureForTerms rt pi in 
         let pure_plus = Eq (rt, fst_terms) in 
-        if entailConstrains (PureAnd (pure1, pure_plus)) pure2 then 
+        print_string ("\n********************\n");
+        print_string (string_of_pure (PureAnd (pure1, pure_plus)));
+        print_string ("\n==>\n");
+        print_string (string_of_pure pure2 ^"\n");
+        print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
+        if entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 then 
         (pi, Emp) 
         else (FALSE, Bot)
       else (FALSE, Bot)
