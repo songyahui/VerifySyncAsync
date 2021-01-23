@@ -21,6 +21,8 @@ let getAnewVar =
 
 let counter_rewriting = ref 0;;
 
+
+
 let getAnewVar_rewriting = 
   counter_rewriting := ! counter_rewriting + 1; 
   "tv" ^ string_of_int !counter_rewriting;;
@@ -264,6 +266,8 @@ let entailConstrains pi1 pi2 =
   print_string (string_of_bool (sat) ^ "\n");
   *)
   sat;;
+
+
 
 
 let string_of_spec_prog (inp:spec_prog):string = 

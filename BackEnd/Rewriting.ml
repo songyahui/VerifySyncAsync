@@ -106,6 +106,20 @@ let rec entailEffects (eff1:effect) (eff2:effect) : bool =
   *)
 ;;
 
+let rec getVarFromTerms (t:terms): string list = 
+  match t with 
+    Var str -> [str]
+  | Number _ -> []
+  | Plus (t1, t2) -> List.append (getVarFromTerms t1) (getVarFromTerms t2)
+  | Minus (t1, t2) -> List.append (getVarFromTerms t1) (getVarFromTerms t2)
+  ;;
+
+let rec getPureForTerms (fst_terms:terms) (fst_pure: pure) : pure = 
+  let var_List = getVarFromTerms fst_terms in 
+  FALSE
+
+  ;;
+
 let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool = 
   let rec aux inclusions = 
     match inclusions with 
@@ -145,7 +159,14 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       let temp2 =  (derivative pi es2 fst) in 
       normalEffect (ifShouldDisj temp1 temp2)
   | RealTime (Instance insR, rt) -> 
-      if instansEntails fst_ins insR then (pi, Emp) 
+      if instansEntails fst_ins insR 
+      then 
+        let pure1 = getPureForTerms fst_terms fst_pure in 
+        let pure2 = getPureForTerms rt pi in 
+        let pure_plus = Eq (rt, fst_terms) in 
+        if entailConstrains (PureAnd (pure1, pure_plus)) pure2 then 
+        (pi, Emp) 
+        else (FALSE, Bot)
       else (FALSE, Bot)
 
     
