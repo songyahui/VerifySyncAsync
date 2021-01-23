@@ -38,18 +38,18 @@ let rec fst (pi:pure) (es:es): fst list =
   | Emp -> []
   | Instance ins ->  
     let newTV = getAnewVar_rewriting in
-    [(ins, Var newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
+    [(ins, newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
   | Cons (es1 , es2) ->  if nullable es1 then append (fst pi es1) (fst pi es2) else fst pi es1
   | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
   | RealTime (Instance ins, rt) -> 
     let newTV = getAnewVar_rewriting in
-    [(ins, Var newTV, (PureAnd (pi, PureAnd(GtEq (Var newTV, Number 0), Eq (Var newTV, rt)) )))]
+    [(ins, newTV, (PureAnd (pi, PureAnd(GtEq (Var newTV, Number 0), Eq (Var newTV, rt)) )))]
   | RealTime (es1, rt) -> 
     let ins_List = fst_simple es1 in 
     List.map 
     (fun ins ->
       let newTV = getAnewVar_rewriting in
-      (ins, Var newTV, (PureAnd (pi, GtEq (Var newTV, Number 0))))
+      (ins, newTV, PureAnd ((PureAnd (pi, GtEq (Var newTV, Number 0))), LtEq (Var newTV, rt)))
     
     ) ins_List
   | Kleene es1 -> fst pi es1
@@ -58,7 +58,7 @@ let rec fst (pi:pure) (es:es): fst list =
     let fst2 = fst pi  es2 in
     let combine = zip (fst1,  fst2) in 
     List.map (fun ((a, term1, pi1) , (b, term2, pi2)) -> 
-      (List.append a b, term1, PureAnd(PureAnd(pi1, pi2), Eq(term1, term2) )))
+      (List.append a b, term1, PureAnd(PureAnd(pi1, pi2), Eq(Var term1, Var term2) )))
        combine
 ;;
 
@@ -181,7 +181,7 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       then 
         let pure1 =  fst_pure in 
         let pure2 =  pi in 
-        let pure_plus = Eq (rt, fst_terms) in 
+        let pure_plus = Eq (rt, Var fst_terms) in 
         print_string ("\n********************\n");
         print_string (string_of_pure (PureAnd (pure1, pure_plus)));
         print_string ("\n==>\n");
@@ -194,7 +194,13 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
 
     
   | RealTime (es1, rt) -> 
-    raise (Foo "not yet")
+    let (pi_temp, es_temp) = normalEffect (derivative pi es1 fst) in
+    let newTV = getAnewVar_rewriting in
+    let pi_new = PureAnd (Lt (Var newTV, rt), Eq(Var newTV, Var fst_terms)) in 
+    if entailConstrains1 (pi_new) TRUE then 
+    (pi_new, es_temp)
+    else (FALSE, Bot)  
+    
     
 
 
