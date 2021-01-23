@@ -41,12 +41,15 @@ let rec fst (pi:pure) (es:es): fst list =
     [(ins, Var newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
   | Cons (es1 , es2) ->  if nullable es1 then append (fst pi es1) (fst pi es2) else fst pi es1
   | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
+  | RealTime (Instance ins, rt) -> 
+    let newTV = getAnewVar_rewriting in
+    [(ins, Var newTV, (PureAnd (pi, PureAnd(GtEq (Var newTV, Number 0), Eq (Var newTV, rt)) )))]
   | RealTime (es1, rt) -> 
     let ins_List = fst_simple es1 in 
     List.map 
     (fun ins ->
       let newTV = getAnewVar_rewriting in
-      (ins, Var newTV, PureAnd (PureAnd (pi, GtEq (Var newTV, Number 0)), GtEq (Var newTV, rt)))
+      (ins, Var newTV, (PureAnd (pi, GtEq (Var newTV, Number 0))))
     
     ) ins_List
   | Kleene es1 -> fst pi es1
@@ -176,8 +179,8 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
   | RealTime (Instance insR, rt) -> 
       if instansEntails fst_ins insR 
       then 
-        let pure1 = getPureForTerms fst_terms fst_pure in 
-        let pure2 = getPureForTerms rt pi in 
+        let pure1 =  fst_pure in 
+        let pure2 =  pi in 
         let pure_plus = Eq (rt, fst_terms) in 
         print_string ("\n********************\n");
         print_string (string_of_pure (PureAnd (pure1, pure_plus)));
