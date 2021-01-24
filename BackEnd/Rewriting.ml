@@ -228,7 +228,10 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
 
     )
  *)
-  | Par (_, _) -> raise (Foo "derivative par")
+  | Par (es1, es2) -> 
+    let (pp1, ees1) = derivative pi es1 fst in 
+    let (pp2, ees2) = derivative pi es2 fst in 
+    (PureAnd (pp1, pp2), Par (ees1, ees2 ))
 
 ;;
 
