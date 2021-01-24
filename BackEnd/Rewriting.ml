@@ -182,11 +182,12 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
         let pure1 =  fst_pure in 
         let pure2 =  pi in 
         let pure_plus = Eq (rt, Var fst_terms) in 
-        print_string ("\n********************\n");
+        (*print_string ("\n********************\n");
         print_string (string_of_pure (PureAnd (pure1, pure_plus)));
         print_string ("\n==>\n");
         print_string (string_of_pure pure2 ^"\n");
         print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
+        *)
         if entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 then 
         (pi, Emp) 
         else (FALSE, Bot)
