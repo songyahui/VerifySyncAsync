@@ -11,7 +11,7 @@ type queue1 = (unit lazy_t) list
 
 let (pi: int queue ref) = ref [] ;;
 
-let default = fun a -> a; ();;
+let default = fun a -> ();;
 
 let rec exec_until_empty (): unit = 
   match !pi with 

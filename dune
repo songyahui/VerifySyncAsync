@@ -1,0 +1,58 @@
+(include_subdirs unqualified)
+
+(ocamllex
+ (modules lexer))
+
+(menhir
+ (modules parser))
+
+(library
+ (name ast)
+ (modules ast)
+ (modules_without_implementation ast))
+
+(library
+ (name parser)
+ (modules parser)
+ (libraries ast))
+
+(library
+ (name lexer)
+ (modules lexer)
+ (libraries parser))
+
+(library
+ (name Askz3)
+ (modules Askz3)
+ (libraries ast))
+
+(library
+ (name Pretty)
+ (modules Pretty)
+ (libraries ast Askz3))
+
+(library
+ (name Rewriting)
+ (modules Rewriting)
+ (libraries ast Askz3 parser lexer Pretty))
+
+(executable
+ (public_name hip)
+ (name Forward)
+ (modules Forward)
+ (libraries ast lexer parser Askz3 Pretty Rewriting))
+
+(executable
+ (public_name sleek)
+ (name sleek)
+ (modules sleek)
+ (libraries ast lexer parser Askz3 Pretty Rewriting))
+
+(executable
+ (public_name promise)
+ (name promise)
+ (modules Promise))
+
+(env
+ (dev
+   (flags (:standard -w -A))))
