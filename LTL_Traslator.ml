@@ -10,7 +10,7 @@ open Printf
 let rec translateLTL (ltl:ltl) : es list =
   match ltl with 
     Lable str -> [Instance ([(One str)])]
-  | Next l -> List.map (fun a -> Con (Instance [], a)) (translateLTL l)
+  | Next l -> List.map (fun a -> Cons (Instance [], a)) (translateLTL l)
   | Global l -> List.map (fun a -> (Kleene a)) (translateLTL l)
   | OrLTL (l1, l2) -> 
     let temp1 =  translateLTL l1 in 
@@ -19,10 +19,10 @@ let rec translateLTL (ltl:ltl) : es list =
   | Until (l1, l2) -> 
     let temp1 =  translateLTL l1 in 
     let temp2 =  translateLTL l2 in 
-    List.flatten (List.map (fun a -> List.map (fun b -> Con (Kleene (a), b) ) temp2) temp1 )
+    List.flatten (List.map (fun a -> List.map (fun b -> Cons (Kleene (a), b) ) temp2) temp1 )
   | Future l -> 
     let temp =  translateLTL l in 
-    List.map (fun a-> Con(Kleene (Instance []), a)) temp
+    List.map (fun a-> Cons (Kleene (Instance []), a)) temp
   
   | NotLTL l -> 
     (match l with 

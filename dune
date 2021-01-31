@@ -53,6 +53,12 @@
  (name promise)
  (modules Promise))
 
+(executable
+ (public_name ltl)
+ (name LTL_Traslator)
+ (modules LTL_Traslator)
+ (libraries ast lexer parser Pretty))
+
 (env
  (dev
    (flags (:standard -w -A))))

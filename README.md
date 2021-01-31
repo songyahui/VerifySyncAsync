@@ -7,10 +7,8 @@ HipHop.js is a reactive language that integrates Esterel’s synchronous concurr
 
 ```
 git clone https://github.com/songyahui/VerifySyncAsync.git
-cd SyncedEffects
-chmod 755 clean 
-chmod 755 compile 
-./compile
+cd VerifySyncAsync
+make generate
 ```
 
 ### Dependencies:
@@ -18,6 +16,7 @@ chmod 755 compile
 ```
 opam switch create 4.07.1
 eval $(opam env)
+opam install dune
 sudo apt-get install menhir
 sudo apt-get install z3
 ```
