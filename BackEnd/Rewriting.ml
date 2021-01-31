@@ -65,9 +65,10 @@ let rec fst (pi:pure) (es:es): fst list =
 
 
 
-let rec appendEff_ES eff es = 
+let rec appendEff_ES eff es:effect = 
   match eff with 
-    (p , es_eff) -> (p, Cons (es_eff, es))
+    [] -> []
+  | (p , es_eff) :: xs -> (p, Cons (es_eff, es)):: appendEff_ES xs es
   
   (*
   
@@ -77,10 +78,13 @@ let rec appendEff_ES eff es =
   ;;
 
 
-let ifShouldDisj (temp1:effect) (temp2:effect) : effect = 
+let ifShouldDisj (temp1) (temp2) : effect = 
+  List.append temp1 temp2
+  (*
   match (temp1, temp2) with
       ((pure1, evs1), (pure2, evs2)) -> 
         (PureAnd(pure1, pure2),  Choice (evs1, evs2))
+        *)
 ;;
 
 
@@ -88,21 +92,25 @@ let ifShouldDisj (temp1:effect) (temp2:effect) : effect =
 
 let rec checkFst (eff:effect) : fst list = 
   match eff with
-   (pi, es) -> fst pi es
+    [] -> []
+  | (pi, es) :: xs -> List.append (fst pi es)  (checkFst xs) 
   (*| Disj (eff1, eff2) -> append (checkFst eff1) (checkFst eff2) *)
  ;;
 
 let rec nullableEffect (eff:effect) : bool = 
   match eff with 
-   (pi, es) -> nullable es
+    [] -> false
+  | (pi, es):: xs -> (nullable es) ||  (nullableEffect  xs)
   (*| Disj (eff1, eff2) -> (nullableEffect eff1) || (nullableEffect eff2) *)
  ;;
 
 let rec entailEffects (eff1:effect) (eff2:effect) : bool = 
   match (eff1, eff2) with 
-    ( (p1, es1),  (p2, es2)) -> 
+
+    ( (p1, es1) ::xs,  (p2, es2)::ys) -> 
       if comparePure p1 p2 && compareES es1 es2 then true 
       else false 
+  | _ -> false 
   (*| (Disj (f1, f2), Disj (f3, f4)) -> 
   (entailEffects f1 f3 && entailEffects f2 f4) || (entailEffects f2 f3 && entailEffects f1 f4)
   | _ -> false 
@@ -151,12 +159,12 @@ let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool =
 let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
   let (fst_ins, fst_terms, fst_pure) = fst in 
   match es with
-    Bot ->  (FALSE, Bot)
-  | Emp ->  (FALSE, Bot)
+    Bot ->  []
+  | Emp ->  []
   | Instance ins ->  
 
-          if instansEntails fst_ins ins then (pi, Emp) 
-          else (FALSE, Bot)
+          if instansEntails fst_ins ins then [(pi, Emp)] 
+          else []
       
 
   (*| Ttimes (es1, t) -> 
@@ -189,18 +197,20 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
         print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
         *)
         if entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 then 
-        (pi, Emp) 
-        else (FALSE, Bot)
-      else (FALSE, Bot)
+        [(pi, Emp)] 
+        else []
+      else []
 
     
   | RealTime (es1, rt) -> 
-    let (pi_temp, es_temp) = normalEffect (derivative pi es1 fst) in
-    let newTV = getAnewVar_rewriting in
-    let pi_new = PureAnd (Lt (Var newTV, rt), Eq(Var newTV, Var fst_terms)) in 
-    if entailConstrains1 (pi_new) TRUE then 
-    (pi_new, es_temp)
-    else (FALSE, Bot)  
+    let ele_list = normalEffect (derivative pi es1 fst) in
+    List.fold_left (fun acc (pi_temp, es_temp)-> 
+      (let newTV = getAnewVar_rewriting in
+      let pi_new = PureAnd (Lt (Var newTV, rt), Eq(Var newTV, Var fst_terms)) in 
+      if entailConstrains1 (pi_new) TRUE then 
+      (pi_new, es_temp) :: acc
+      else acc
+    )) [] ele_list
     
     
 
@@ -229,9 +239,12 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
     )
  *)
   | Par (es1, es2) -> 
-    let (pp1, ees1) = derivative pi es1 fst in 
-    let (pp2, ees2) = derivative pi es2 fst in 
+    let ele_list1 = derivative pi es1 fst in 
+    let ele_list2 = derivative pi es2 fst in 
+    let eles = zip (ele_list1, ele_list2) in 
+    List.map (fun ((pp1, ees1), (pp2, ees2) ) -> 
     (PureAnd (pp1, pp2), Par (ees1, ees2 ))
+    ) eles
 
 ;;
 
@@ -242,9 +255,9 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion normalFormL normalFormR in 
 
-  let rec checkDerivative (eff:effect) (fst:fst) : effect = 
-    match eff with
-     (pi, es) -> derivative pi es fst
+  let rec checkDerivative eff (fst:fst) : effect = 
+    
+     List.fold_left (fun acc (pi, es) -> List.append (derivative pi es fst) acc) []  eff 
     (*| Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) *)
   in 
 
@@ -281,11 +294,9 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
   else 
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
-    ((FALSE, _), _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
-  | ((_, Bot), _) -> (true, Node(showEntail ^ "   [Bot-LHS]", []),  evn)  
-  | (_, (FALSE, _)) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
-  | (_, (_, Bot)) -> (false,Node(showEntail ^ "   [DISPROVE]", []),  evn)  
-  | _ -> 
+    ([], _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
+  | (_, []) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+  | _ ->
   
   unfold normalFormL normalFormR evn 
   

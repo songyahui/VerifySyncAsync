@@ -114,7 +114,7 @@ es:
 
 effect:
 | LPAR r = effect RPAR { r }
-| a = pure  CONJ  b= es  {(a, b)}
+| a = pure  CONJ  b= es  {[(a, b)]}
 | LPAR LBrackets nn= existVar RBrackets  eff= effect RPAR{
   eff}
 
@@ -138,8 +138,8 @@ pRog_aux:
 | PAUSE   { Yield } 
 | EMIT s = VAR  {Emit s}
 
-| EMIT s = VAR  LPAR n =  INTE RPAR {Emit s}
-
+(*| EMIT s = VAR  LPAR n =  INTE RPAR {Emit s}
+*)
 | LOOP LBRACK p = pRog RBRACK { Loop p}
 | SIGNAL s = VAR SIMI p = pRog { Declear (s, p)}
 | PRESENT s = VAR THEN p1 = pRog ELSE p2 = pRog END PRESENT { Present (s, p1, p2)}
@@ -179,8 +179,6 @@ specProg:
 
 
   LBRACK p = pRog RBRACK
-
-
   
   {
     let (ins, out) = augur in 
@@ -192,5 +190,5 @@ specProg:
 
   {
     let (ins, out) = augur in 
-    (nm, ins, out, (TRUE, Emp), (TRUE, Emp), p)}
+    (nm, ins, out, [(TRUE, Emp)], [(TRUE, Emp)], p)}
 

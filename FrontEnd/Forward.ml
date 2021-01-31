@@ -265,9 +265,12 @@ let parallelES es1 es2 : (es * instance)=
   ;;
 
 let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
-  let (pi, his, cur, k) = current in 
+  
   match prog with 
     Halt -> current
+  (*
+  let (pi, his, cur, k) = current in 
+  
   | Yield -> 
     (pi, Cons (his,Instance cur) , make_nothing env, k)
   | Emit (s) -> 
@@ -342,61 +345,13 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
                       (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k2)
     | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
 
-    (*
-    
-      
-    let helper (pure, his, curr, trap) = 
-      match trap with
-      | Some name -> (pure, his, curr, trap)
-      | None -> (pure, his, List.append curr [(One s)], trap)
-    in List.map (helper) current
-  | Seq (p1, p2) ->  
-    let helper (pure, his, curr, trap) = 
-      match trap with
-      | Some name -> [(pure, his, curr, trap)]
-      | None -> 
-        let states1 = forward current p1 full in 
-        List.flatten (List.map (fun (pure1, his1, cur1, trap1)->
-              match trap1 with 
-                Some _ -> [(pure1, his1, cur1, trap1)]
-              | None -> forward [(pure1, his1, cur1, trap1)] p2 full
-
-              )states1)
-    
-    in  List.flatten (List.map (helper) current)
-
-  
-  | If (pi, p1, p2) -> 
-    let left = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, pi), his, curr, trap )) current) p1 full in 
-    let right = forward (List.map (fun (pure, his, curr, trap ) -> (PureAnd (pure, Neg pi), his, curr, trap )) current) p2 full in 
-    List.append left right
-
-
-  | _ -> current
-  (*
- 
-
-  | Fork (p1, p2) ->
-      let left = forward current p1 full in 
-      let right = forward current p2 full in 
-      
-      
-    
-(Fork (_, _)|Loop _|Run _|Suspend (_, _)|Async (_, _, _)|Await _)
-
-  | Loop pIn -> "loop\n " ^ string_of_prog pIn ^ "\nend loop"
-   
-  | Run mn -> "run " ^ mn
-  | Suspend (prog, s) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^s
-  | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_action act
-  | Await (mn) -> "await "^ mn 
-  *)
-  *)
+*)
   ;;
 
 let rec append_instance_to_effect (eff:effect) (ins:instance) : effect = 
   match eff with 
-   (pi, es) ->  (pi, Cons (es, Instance ins))
+    [] -> []
+  | (pi, es) :: xs ->  (pi, Cons (es, Instance ins)) :: (append_instance_to_effect xs ins)
   (*| Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)*)
   ;;
 
@@ -410,18 +365,32 @@ let rec splitEffects (eff:effect) : (pure*es) list =
   
   *)
 
+let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list = 
+  match es with 
+    Bot -> []
+  | Emp -> [(pi, Emp, [])]
+  | Instance ins -> [(pi, Emp, ins)]
+  | Cons (es1, es2) -> 
+    let temp = splitEffects es2 pi in 
+    List.map (fun (pi1, es1, ins1) -> 
+      (pi1, Cons (es1, es2), ins1)
+    ) temp
+  | Choice (es1, es2) -> 
+    List.append (splitEffects es1 pi ) (splitEffects es2 pi)
+  ;;
+
 
 
 let verifier (spec_prog:spec_prog) (full: spec_prog list):string = 
   let (nm, inp_sig, oup_sig, pre,  post, prog) = spec_prog in 
-  let (pi, es) = pre in 
-  let initial_states = (pi, es, [], None) in 
-  let (pi, his, cur, k) = forward oup_sig initial_states prog full in 
-  let (final:effect) = ((pi, Cons (his, Instance cur)))  (*normalEffect merge_states*) in 
+  
+  let initial = List.fold_left (fun acc (pi, es) -> List.append (splitEffects es pi) acc) [] pre in 
+  let initial_states = List.map (fun (pi_, his, cur) -> (pi_, his, cur, None)) initial in 
+  let final_states = forward oup_sig initial_states prog full in 
+  let (final:effect) = List.map (fun (pi, his, cur, _) -> (pi, Cons (his, Instance cur))) final_states in  (*normalEffect merge_states*)
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^
-  "(* Temporal verification: "^ "  *)\n" ^
   "[Pre  Condition] " ^ string_of_effect pre ^"\n"^
   "[Post Condition] " ^ string_of_effect post ^"\n"^
   "[Final  Effects] " ^ string_of_effect final ^"\n\n"^

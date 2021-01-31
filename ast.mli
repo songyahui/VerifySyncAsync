@@ -26,14 +26,14 @@ type realtime =
 
 *)
 
-type es = Bot 
-        | Emp 
-        | Instance of instance (*logical tick*)
-        | Cons of es * es
-        | Choice of es * es
-        | Par of es * es 
-        | RealTime of es * terms (*real time tick*)
-        | Kleene of es 
+type es = Bot  (*_|_*)
+        | Emp  (* emp *)
+        | Instance of instance (*logical tick*) (* {} *)
+        | Cons of es * es (* .  *)
+        | Choice of es * es (* \/ *)
+        | Par of es * es (* ||  *)
+        | RealTime of es * terms (*real time tick*) (* es # t *)
+        | Kleene of es (* es^* *)
 
 (*Arithimetic pure formulae*)
 type pure = TRUE
@@ -47,7 +47,7 @@ type pure = TRUE
           | PureAnd of pure * pure
           | Neg of pure
 
-type effect = (pure * es)
+type effect = (pure * es) list 
 
 type inclusion = effect * effect;;
 
@@ -71,7 +71,7 @@ type prog = Halt
           | Assert of effect
 (*JS ASYNC*)
 
-type prog_states = (pure * es * instance * name option)
+type prog_states = (pure * es * instance * name option) list
 
 type fst = (instance * string * pure)
 

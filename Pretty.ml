@@ -227,7 +227,8 @@ let rec string_of_pure (p:pure):string =
 
 let rec string_of_effect(eff:effect): string = 
   match eff with 
-    (p , es) -> string_of_pure p ^ "&" ^ string_of_es es 
+    [] -> ""
+  | (p , es)::xs -> string_of_pure p ^ "&" ^ string_of_es es  ^ "\\/" ^ string_of_effect xs 
   
 ;;
 
@@ -719,8 +720,9 @@ let rec normalPure (pi:pure):pure =
 
 let rec normalEffect (eff:effect) : effect =
   match eff with
-   (p, es) -> 
-      if (askZ3 p) == false then 
+    [] -> [] 
+  | (p, es) :: xs  -> 
+      (if (askZ3 p) == false then 
         ( 
           (*print_string (showPure p^"   "^ showES es^ "\n 11********\n");*)
          (FALSE, es)
@@ -729,7 +731,7 @@ let rec normalEffect (eff:effect) : effect =
       
         let p_normal = normalPure p in 
         let es_normal  = normalES es p in
-        ( p_normal, es_normal)
+        ( p_normal, es_normal)) :: normalEffect xs
        (*
         (match es_normal with 
           Choice (es_nor1, es_nor2) -> Choice ( (p_normal, es_nor1),  (p_normal, es_nor2))
