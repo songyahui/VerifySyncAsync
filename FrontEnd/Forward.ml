@@ -365,6 +365,18 @@ let rec splitEffects (eff:effect) : (pure*es) list =
   
   *)
 
+let rec lengthOfEs es : int =
+  match es with 
+    Bot -> raise (Foo "Bot does not have length")
+  | Emp -> 0
+  | Instance _ -> 1
+  | Cons (es1, es2) -> lengthOfEs es1 + lengthOfEs es2
+  | Choice (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
+  | Par (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
+  | RealTime (es1, _) -> lengthOfEs es1 
+  | Kleene es1 -> 1 + lengthOfEs es1 
+  ;;
+
 let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list = 
   match es with 
     Bot -> []
@@ -377,6 +389,25 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
     ) temp
   | Choice (es1, es2) -> 
     List.append (splitEffects es1 pi ) (splitEffects es2 pi)
+  | Par (es1, es2) -> 
+    let len1 = lengthOfEs es1 in 
+    let len2 = lengthOfEs es2 in 
+    if len1 > len2 then 
+      let temp = splitEffects es1 pi in 
+      List.map (fun (p, e, i) -> (p, Par (e, es2), i)) temp
+    else if len1 < len2 then 
+      let temp = splitEffects es2 pi in 
+      List.map (fun (p, e, i) -> (p, Par (e, es1), i)) temp
+    else 
+      let temp1 = splitEffects es1 pi in 
+      let temp2 = splitEffects es2 pi in 
+      let combine = zip (temp1, temp2) in 
+      List.map (fun ((p1, e1, i1), (p2, e2, i2)) -> (PureAnd(p1, p2), Par(e1, e2), List.append i1 i2)) combine
+
+  | RealTime (es1, t) -> 
+    let temp = splitEffects es1 pi in 
+
+
   ;;
 
 
