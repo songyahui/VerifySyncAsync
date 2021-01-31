@@ -18,7 +18,7 @@ opam switch create 4.07.1
 eval $(opam env)
 opam install dune
 opam install menhir
-opam install z3
+sudo apt-get install z3
 ```
 
 {A, B , C} /\ {B, C} |- {A}
@@ -26,8 +26,8 @@ opam install z3
 {A} |- {A, B , C} /\ {B, C}
 {A} |- {B} -> false
 
-emp |- 
+emp |-
 -------------------------------------------
 {A}  |- {A} || O  and O  |- {A} || O
 -----------------------------
-{A} || O  |- {A} || O  true  
+{A} || O  |- {A} || O  true
