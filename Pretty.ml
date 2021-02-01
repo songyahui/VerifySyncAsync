@@ -303,6 +303,17 @@ let string_of_inclusion (lhs:effect) (rhs:effect) :string =
   string_of_effect lhs ^" |- " ^string_of_effect rhs 
   ;;
 
+let string_of_prog_states (ps: prog_states) : string = 
+  List.fold_left  (fun acc (p, es, instance,  _) -> 
+    acc^ string_of_pure p ^ "/\\" ^ string_of_es es ^ " : " ^ string_of_instance instance  
+  ) " "ps
+  ;;
+
+let string_of_split (ps) : string = 
+  List.fold_left  (fun acc (p, es, instance) -> 
+    acc^ string_of_pure p ^ "/\\" ^ string_of_es es ^ " : " ^ string_of_instance instance  
+  ) " "ps
+  ;;
 
 (*
 let compareSignal (s1 :signal * int option) (s2:signal * int option) : bool =
@@ -732,6 +743,9 @@ let rec normalEffect (eff:effect) : effect =
       
         let p_normal = normalPure p in 
         let es_normal  = normalES es p in
+        match es_normal with 
+          Bot -> []
+          | _ ->
         [( p_normal, es_normal)])  (normalEffect xs)
        (*
         (match es_normal with 

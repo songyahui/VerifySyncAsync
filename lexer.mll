@@ -54,8 +54,8 @@ rule token = parse
 | "in" {IN}
 | "then" {THEN}
 | "else" {ELSE}
-| "TRUE" { TRUE }
-| "FALSE" { FALSE }
+| "TRUE" { TRUEToken }
+| "FALSE" { FALSEToken }
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "count" { COUNT }

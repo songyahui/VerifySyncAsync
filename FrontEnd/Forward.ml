@@ -162,34 +162,7 @@ let rec paralleEffLong es1 es2 : p_es =
    ;;
 
  
-let rec paralleEffShort es1 es2 : p_es = 
-  let norES1 = normalPES es1 in 
-  let norES2 = normalPES es2 in 
-  let norES1 = filterZero norES1 in 
-  let norES2 = filterZero norES2 in 
-  let fst1 = getFstPes norES1 in
-  let fst2 = getFstPes norES2 in 
-  let headcom = zip fst1 fst2 in 
 
-
-  let listES =  List.map (
-  fun (f1, f2) -> 
-    let der1 = normalPES (derivativePes f1 norES1) in 
-    let der2 = normalPES (derivativePes f2 norES2) in 
-
-
-    (match (der1, der2) with 
-    | (PEmp, _) -> PInstance (appendSL f1 f2)
-    | (_, PEmp) -> PInstance (appendSL f1 f2)
-    | (der1, der2) -> 
-      PCon (PInstance (appendSL f1 f2), paralleEffShort der1 der2))
-  ) headcom
-  
-  in
-  normalPES (
-  List.fold_left (fun acc a -> PDisj (acc, a)) PBot listES
-  )
- ;;
 
 let rec lengthPES es : int =
   match es with  
@@ -279,8 +252,8 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
   | Instance ins -> [(pi, Emp, ins)]
   | Cons (es1, es2) -> 
     let temp = splitEffects es2 pi in 
-    List.map (fun (pi1, es1, ins1) -> 
-      (pi1, Cons (es1, es2), ins1)
+    List.map (fun (pi2, es2, ins2) -> 
+      (pi2, Cons (es1, es2), ins2)
     ) temp
   | Choice (es1, es2) -> 
     List.append (splitEffects es1 pi ) (splitEffects es2 pi)
@@ -312,13 +285,61 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
 
   ;;
 
+let rec derivativePar ins es :es =
+  match es with 
+    Bot ->  Bot
+  | Emp ->  Bot
+  | Instance ins ->  
+    if instansEntails ins ins then Emp
+    else Bot
+  | Cons (es1 , es2) -> 
+      let esF = derivativePar ins es1  in 
+      let esL = Cons(esF,  es2) in  
+      if nullable es1 
+      then 
+          let esR =  derivativePar ins es2 in 
+          Choice (esL, esR)
+      else esL
 
-let parallelES pi1 pi2 es1 es2 : (pure * es) =
+  | Choice (es1, es2) -> 
+      let temp1 =  derivativePar ins es1  in
+      let temp2 =  derivativePar ins es2  in 
+      Choice (temp1,temp2)
 
-  (PureAnd (pi1, pi2) , Emp)
 
   
+
   ;;
+
+
+let rec parallelES pi1 pi2 es1 es2 : (pure * es) =
+  let norES1 = normalES es1 pi1 in 
+  let norES2 = normalES es2 pi2 in 
+  print_string (string_of_es norES1 );
+  print_string (string_of_es norES2 );
+  let fst1 = fst_simple norES1 in
+  let fst2 = fst_simple norES2 in 
+  let headcom = zip (fst1, fst2) in 
+  let esLIST = List.map (
+  fun (f1, f2) -> 
+    let der1 = normalES  (derivativePar f1 norES1) pi1 in 
+    let der2 = normalES  (derivativePar f2 norES2) pi2 in 
+
+
+    (match (der1, der2) with 
+    | (Emp, _) -> (TRUE, Cons (Instance (List.append f1 f2), der2))
+    | (_, Emp) -> (TRUE, Cons (Instance (List.append f1 f2), der1))
+    | (der1, der2) -> 
+        let (pi, es) = (parallelES pi1 pi2 der1 der2) in 
+        (pi, Cons (Instance (List.append f1 f2), es))
+      
+    ) 
+  ) headcom
+  in List.fold_left (fun (pacc, esacc) (p, e) -> (PureAnd(pacc, p), Choice(esacc, e)))  (PureAnd(pi1, pi2), Bot) esLIST
+
+
+  
+ ;;
 
 let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
   
@@ -440,24 +461,25 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   match (k1, k2) with
     (None, None) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
       
-      List.map 
+    List.map 
       (fun (pi_new_, his_new, cur_new) -> 
         (pi_new_, Cons(his, his_new), cur_new, None) )
-      (splitEffects  es_new pi_new)        
+      (splitEffects  (normalES es_new pi_new) pi_new)      
+      
       
   | (Some trap, None) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
                     
       List.map (
         fun (pi_new_, his_new, cur_new) -> 
           (pi_new, Cons(his, his_new), cur_new, k1) )
-      (splitEffects  es_new pi_new)        
+      (splitEffects  (normalES es_new pi_new) pi_new)        
 
   
   | (None, Some trap) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
       List.map (
         fun (pi_new_, his_new, cur_new) -> 
         (pi_new, Cons(his, his_new), cur_new, k2) )
-      (splitEffects  es_new pi_new)                    
+      (splitEffects  (normalES es_new pi_new) pi_new)                    
 
   | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
 
