@@ -723,16 +723,16 @@ let rec normalEffect (eff:effect) : effect =
   match eff with
     [] -> [] 
   | (p, es) :: xs  -> 
-      (if (askZ3 p) == false then 
+      List.append (if (askZ3 p) == false then 
         ( 
           (*print_string (showPure p^"   "^ showES es^ "\n 11********\n");*)
-         (FALSE, es)
+         []
         )
       else 
       
         let p_normal = normalPure p in 
         let es_normal  = normalES es p in
-        ( p_normal, es_normal)) :: normalEffect xs
+        [( p_normal, es_normal)])  (normalEffect xs)
        (*
         (match es_normal with 
           Choice (es_nor1, es_nor2) -> Choice ( (p_normal, es_nor1),  (p_normal, es_nor2))

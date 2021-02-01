@@ -313,8 +313,10 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
   ;;
 
 
-let parallelES pi1 pi2 es1 es2 : (pure * es * instance)=
-  ( PureAnd (pi1, pi2), Emp, [])
+let parallelES pi1 pi2 es1 es2 : (pure * es) =
+
+  (PureAnd (pi1, pi2) , Emp)
+
   
   ;;
 
@@ -421,6 +423,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   ) [] current 
 
   | Fork (p1, p2) -> 
+  List.flatten (
   List.fold_left (fun acc (pi, his, cur, k) ->
 
   List.append acc (  
@@ -435,16 +438,32 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
  
   match (k1, k2) with
-    (None, None) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (pi_new, Cons(his, his_new), cur_new, None)
-  | (Some trap, None) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (pi_new, Cons(his, his_new), cur_new, k1)
-  | (None, Some trap) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (pi_new, Cons(his, his_new), cur_new, k2)
+    (None, None) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+      
+      List.map 
+      (fun (pi_new_, his_new, cur_new) -> 
+        (pi_new_, Cons(his, his_new), cur_new, None) )
+      (splitEffects  es_new pi_new)        
+      
+  | (Some trap, None) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    
+      List.map (
+        fun (pi_new_, his_new, cur_new) -> 
+          (pi_new, Cons(his, his_new), cur_new, k1) )
+      (splitEffects  es_new pi_new)        
+
+  
+  | (None, Some trap) -> let (pi_new, es_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+      List.map (
+        fun (pi_new_, his_new, cur_new) -> 
+        (pi_new, Cons(his, his_new), cur_new, k2) )
+      (splitEffects  es_new pi_new)                    
+
   | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
 
   ) combine
   )) [] current
+  )
 
   ;;
 
