@@ -39,7 +39,7 @@ rule token = parse
 | "async" {ASYNC}
 | "assert" {ASSERT}
 | "when" {WHEN}
-| "if" {PRESENT}
+| "present" {PRESENT}
 | "run" {RUN}
 | "trap" {TRAP}
 | "exit" {EXIT}
