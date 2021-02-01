@@ -228,6 +228,7 @@ let rec string_of_pure (p:pure):string =
 let rec string_of_effect(eff:effect): string = 
   match eff with 
     [] -> ""
+  | [(p , es)] -> string_of_pure p ^ "&" ^ string_of_es es
   | (p , es)::xs -> string_of_pure p ^ "&" ^ string_of_es es  ^ "\\/" ^ string_of_effect xs 
   
 ;;

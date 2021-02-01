@@ -272,9 +272,9 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     List.map (fun (pi, his, cur, k) -> (pi, Cons (his,Instance cur) , make_nothing env, k))  current
   
   | Emit (s) -> 
-    List.map (fun (pi, his, cur, k) ->(pi, Cons (his,Instance cur) , setState cur s 1, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
+    List.map (fun (pi, his, cur, k) ->(pi, his , ((One s)::cur )(*setState cur s 1*), k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
   | Await (s) -> 
-    List.map (fun (pi, his, cur, k) ->(pi, Cons (his,Instance cur) , setState cur s 2, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
+    List.map (fun (pi, his, cur, k) ->(pi, his , setState cur s 2, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
 
   | Present (s, p1, p2) ->
     List.fold_left (fun acc (pi, his, cur, k) -> 
@@ -471,7 +471,7 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let initial = List.fold_left (fun acc (pi, es) -> List.append (splitEffects es pi) acc) [] pre in 
   let initial_states = List.map (fun (pi_, his, cur) -> (pi_, his, cur, None)) initial in 
   let final_states = forward oup_sig initial_states prog full in 
-  let (final:effect) = List.map (fun (pi, his, cur, _) -> (pi, Cons (his, Instance cur))) final_states in  (*normalEffect merge_states*)
+  let (final:effect) = normalEffect (List.map (fun (pi, his, cur, _) -> (pi, Cons (his, Instance cur))) final_states) in  (*normalEffect merge_states*)
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^
