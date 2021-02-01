@@ -140,7 +140,7 @@ pRog_aux:
 
 (*| EMIT s = VAR  LPAR n =  INTE RPAR {Emit s}
 *)
-| LOOP LBRACK p = pRog RBRACK { Loop p}
+| LOOP  p = pRog END LOOP { Loop p}
 | SIGNAL s = VAR SIMI p = pRog { Declear (s, p)}
 | PRESENT s = VAR THEN p1 = pRog ELSE p2 = pRog END PRESENT { Present (s, p1, p2)}
 (*| PRESENT s = pure THEN p1 = pRog ELSE p2 = pRog END PRESENT { If (s, p1, p2)}*)

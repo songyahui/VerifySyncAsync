@@ -429,19 +429,31 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
    ) [] current 
 
   | Loop p ->
+List.flatten(
   List.fold_left (fun acc (pi, his, cur, k) ->
+
 
   List.append acc (  
    
     List.map (fun (pi1, his1, cur1, k1) -> 
     (match k1 with 
-      Some trap -> (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), his1), cur1, k1)
-    | None -> (pi1, Cons (his, Kleene (Cons (his1, Instance cur1))), make_nothing env, k1)
+      Some trap -> [(PureAnd (pi, pi1), Cons (Cons (his, Instance cur), his1), cur1, k1)]
+    | None -> 
+      List.map ( fun ins ->
+
+      match (ins, cur1) with 
+      | ([], _) -> (pi1, Cons (Cons (his, Instance cur), Kleene (Cons (derivativePar ins his1, Instance cur1))), make_nothing env, k1)
+      | (_, []) -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar ins his1, Instance ins))), make_nothing env, k1)
+      | _ -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar ins his1, Instance (List.append cur1 ins)))), make_nothing env, k1)
+      ) (fst_simple his1)
+    
     )
-    ) (forward env [(pi, Emp, cur, k)] p full)
+    ) (forward env [(pi, Emp, [], k)] p full)
 
   )
-  ) [] current 
+  
+  
+  ) [] current )
 
   | Fork (p1, p2) -> 
   List.flatten (
