@@ -285,79 +285,113 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
   | Declear (s , p) -> 
     forward (List.append env [s]) current p full 
-  
 
+  | Async (s, p, delay) -> 
+    List.map (fun (pi1, his1, cur1, k1) ->
+      let term = Var getAnewVar in 
+      (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), setState (make_nothing env) s 1, k1)
+        ) (forward env current p full)
 
-    (*
-  let  = current in 
-  
-  
-    | Async (s, p, delay) -> 
-    List.map (fun (pi, his, cur, k) ->
-
-    let (pi1, his1, cur1, k1) = forward env current p full in 
-    let term = Var getAnewVar in 
-    (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), setState (make_nothing env) s 1, k1)
-    )  current
-
-  
   | Assert eff -> 
-    let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) eff in 
-    if re then current 
-    else raise (Foo "assertion failed")
 
+      let (re, _, _) = check_containment (List.map (fun (pi, his, cur, k) -> (pi, Cons(his, Instance cur))) current) eff in 
+      if re then current 
+      else raise (Foo "assertion failed")
+   
   | Seq (p1, p2) -> 
-    let (pi1, his1, cur1, k1) = forward env current p1 full in 
+    
+    List.fold_left (fun acc (pi1, his1, cur1, k1) ->  
+    List.append acc (  
     (match k1 with 
-      Some str -> (pi1, his1, cur1, k1) 
-    | None -> forward env (pi1, his1, cur1, k1) p2 full
+      Some str -> [(pi1, his1, cur1, k1)] 
+    | None -> forward env [(pi1, his1, cur1, k1)] p2 full
     )
+    )
+    ) [] ( forward env current p1 full)
+    
 
   | Trap (mn, p1) -> 
-    let (pi1, his1, cur1, k1) = forward env current p1 full in 
-    (match k1 with 
+    List.fold_left (fun acc (pi1, his1, cur1, k1) ->  
+      List.append acc (  
+    
+    [(match k1 with 
       Some str -> if String.compare str mn == 0 then (pi1, his1, cur1, None) else (pi1, his1, cur1, k1)
     | None -> (pi1, his1, cur1, k1)
-    )
+    )]
+      )
+    ) [] ( forward env current p1 full)
 
   | Break name -> 
-    (match k with 
-      Some str -> (pi, his, cur, k)
-    | None -> (pi, his, cur, Some name)
-    )
+    List.map (fun (pi, his, cur, k) ->
+      (match k with 
+        Some str -> (pi, his, cur, k)
+      | None -> (pi, his, cur, Some name)
+      )
+    ) current
 
   | Abort (delay, p) ->
-    let (pi1, his1, cur1, k1) = forward env current p full in 
+    List.map (fun (pi1, his1, cur1, k1) ->
     let term = Var getAnewVar in 
     (PureAnd (pi1, Lt (term, Number delay)), RealTime (Cons (his1, Instance cur1),  term) , make_nothing env, k1)
+    )
+    (forward env current p full)
 
   | Run mn ->
+  List.fold_left (fun acc (pi, his, cur, k) ->
+
+    List.append acc (  
       let (fun_name, inp, outp, precon, postcon, _) = findProg mn full in 
-      let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) precon in 
-      let (pi1, es1) = precon in 
+      let (re, _, _) = check_containment [(pi, Cons (his, Instance cur))] precon in 
+      
+      
+      List.map (fun (pi1, es1) -> 
       if re then (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), es1), make_nothing env, k)
-      else raise (Foo "precondiction check failed")    
-  
+      else raise (Foo "precondiction check failed")
+      ) precon
+    )
+   ) [] current 
+
   | Loop p ->
-    let (pi1, his1, cur1, k1) = forward env (pi, Emp, cur, k) p full in 
+  List.fold_left (fun acc (pi, his, cur, k) ->
+
+  List.append acc (  
+   
+    List.map (fun (pi1, his1, cur1, k1) -> 
     (match k1 with 
       Some trap -> (PureAnd (pi, pi1), Cons (Cons (his, Instance cur), his1), cur1, k1)
     | None -> (pi1, Cons (his, Kleene (Cons (his1, Instance cur1))), make_nothing env, k1)
     )
+    ) (forward env [(pi, Emp, cur, k)] p full)
+
+  )
+  ) [] current 
 
   | Fork (p1, p2) -> 
-    let (pi1, his1, cur1, k1) = forward env (pi, Emp, cur, k) p1 full in 
-    let (pi2, his2, cur2, k2) = forward env (pi, Emp, cur, k) p2 full in 
-    match (k1, k2) with
-      (None, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, None)
-    | (Some trap, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k1)
-    | (None, Some trap) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                      (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k2)
-    | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
+  List.fold_left (fun acc (pi, his, cur, k) ->
 
-*)
+  List.append acc (  
+
+  let temp1 = forward env [(pi, Emp, cur, k)] p1 full in 
+  let temp2 = forward env [(pi, Emp, cur, k)] p2 full in 
+  let combine = zip (temp1, temp2) in 
+
+
+
+  List.map (fun (  (pi1, his1, cur1, k1),(pi2, his2, cur2, k2)) ->
+
+  
+  match (k1, k2) with
+    (None, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, None)
+  | (Some trap, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k1)
+  | (None, Some trap) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k2)
+  | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
+
+  ) combine
+  )) [] current
+
   ;;
 
 let rec append_instance_to_effect (eff:effect) (ins:instance) : effect = 
