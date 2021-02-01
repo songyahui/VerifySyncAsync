@@ -260,8 +260,62 @@ let rec append_ins_to_es (ins:instance)  (es:es) : es =
   Cons(es, Instance ins)
   ;;
 
-let parallelES es1 es2 : (es * instance)=
-  (Emp, [])
+let rec lengthOfEs es : int =
+  match es with 
+    Bot -> raise (Foo "Bot does not have length")
+  | Emp -> 0
+  | Instance _ -> 1
+  | Cons (es1, es2) -> lengthOfEs es1 + lengthOfEs es2
+  | Choice (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
+  | Par (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
+  | RealTime (es1, _) -> lengthOfEs es1 
+  | Kleene es1 -> lengthOfEs es1 
+  ;;
+
+let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list = 
+  match es with 
+    Bot -> []
+  | Emp -> [(pi, Emp, [])]
+  | Instance ins -> [(pi, Emp, ins)]
+  | Cons (es1, es2) -> 
+    let temp = splitEffects es2 pi in 
+    List.map (fun (pi1, es1, ins1) -> 
+      (pi1, Cons (es1, es2), ins1)
+    ) temp
+  | Choice (es1, es2) -> 
+    List.append (splitEffects es1 pi ) (splitEffects es2 pi)
+  | Par (es1, es2) -> 
+    let len1 = lengthOfEs es1 in 
+    let len2 = lengthOfEs es2 in 
+    if len1 > len2 then 
+      let temp = splitEffects es1 pi in 
+      List.map (fun (p, e, i) -> (p, Par (e, es2), i)) temp
+    else if len1 < len2 then 
+      let temp = splitEffects es2 pi in 
+      List.map (fun (p, e, i) -> (p, Par (e, es1), i)) temp
+    else 
+      let temp1 = splitEffects es1 pi in 
+      let temp2 = splitEffects es2 pi in 
+      let combine = zip (temp1, temp2) in 
+      List.map (fun ((p1, e1, i1), (p2, e2, i2)) -> (PureAnd(p1, p2), Par(e1, e2), List.append i1 i2)) combine
+
+  | RealTime (es1, t) -> 
+    let temp = splitEffects es1 pi in 
+    List.map (fun (p, e, i) -> 
+    let newTV = getAnewVar_rewriting in
+    (PureAnd(p, LtEq(Var newTV, t)), RealTime (e, Var newTV), i)
+    
+    ) temp 
+    
+  | Kleene es1 -> [(pi, es, [])]
+
+
+  ;;
+
+
+let parallelES pi1 pi2 es1 es2 : (pure * es * instance)=
+  ( PureAnd (pi1, pi2), Emp, [])
+  
   ;;
 
 let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
@@ -269,7 +323,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   match prog with 
     Halt -> current
   | Yield -> 
-    List.map (fun (pi, his, cur, k) -> (pi, Cons (his,Instance cur) , make_nothing env, k))  current
+    List.map (fun (pi, his, cur, k) -> (pi, Cons (his,Instance cur) , [](*make_nothing env *), k))  current
   
   | Emit (s) -> 
     List.map (fun (pi, his, cur, k) ->(pi, his , ((One s)::cur )(*setState cur s 1*), k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
@@ -379,14 +433,14 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
   List.map (fun (  (pi1, his1, cur1, k1),(pi2, his2, cur2, k2)) ->
 
-  
+ 
   match (k1, k2) with
-    (None, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, None)
-  | (Some trap, None) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k1)
-  | (None, Some trap) -> let (his_new, cur_new) = parallelES (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
-                    (PureAnd (pi1, pi2), Cons(his, his_new), cur_new, k2)
+    (None, None) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (pi_new, Cons(his, his_new), cur_new, None)
+  | (Some trap, None) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (pi_new, Cons(his, his_new), cur_new, k1)
+  | (None, Some trap) -> let (pi_new, his_new, cur_new) = parallelES pi1 pi2 (Cons (his1, Instance cur1)) (Cons (his2, Instance cur2)) in
+                    (pi_new, Cons(his, his_new), cur_new, k2)
   | (Some t1, Some t2) -> raise (Foo ("not defined curretly"))
 
   ) combine
@@ -411,57 +465,8 @@ let rec splitEffects (eff:effect) : (pure*es) list =
   
   *)
 
-let rec lengthOfEs es : int =
-  match es with 
-    Bot -> raise (Foo "Bot does not have length")
-  | Emp -> 0
-  | Instance _ -> 1
-  | Cons (es1, es2) -> lengthOfEs es1 + lengthOfEs es2
-  | Choice (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
-  | Par (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
-  | RealTime (es1, _) -> lengthOfEs es1 
-  | Kleene es1 -> 1 + lengthOfEs es1 
-  ;;
-
-let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list = 
-  match es with 
-    Bot -> []
-  | Emp -> [(pi, Emp, [])]
-  | Instance ins -> [(pi, Emp, ins)]
-  | Cons (es1, es2) -> 
-    let temp = splitEffects es2 pi in 
-    List.map (fun (pi1, es1, ins1) -> 
-      (pi1, Cons (es1, es2), ins1)
-    ) temp
-  | Choice (es1, es2) -> 
-    List.append (splitEffects es1 pi ) (splitEffects es2 pi)
-  | Par (es1, es2) -> 
-    let len1 = lengthOfEs es1 in 
-    let len2 = lengthOfEs es2 in 
-    if len1 > len2 then 
-      let temp = splitEffects es1 pi in 
-      List.map (fun (p, e, i) -> (p, Par (e, es2), i)) temp
-    else if len1 < len2 then 
-      let temp = splitEffects es2 pi in 
-      List.map (fun (p, e, i) -> (p, Par (e, es1), i)) temp
-    else 
-      let temp1 = splitEffects es1 pi in 
-      let temp2 = splitEffects es2 pi in 
-      let combine = zip (temp1, temp2) in 
-      List.map (fun ((p1, e1, i1), (p2, e2, i2)) -> (PureAnd(p1, p2), Par(e1, e2), List.append i1 i2)) combine
-
-  | RealTime (es1, t) -> 
-    let temp = splitEffects es1 pi in 
-    List.map (fun (p, e, i) -> 
-    let newTV = getAnewVar_rewriting in
-    (PureAnd(p, LtEq(Var newTV, t)), RealTime (e, Var newTV), i)
-    
-    ) temp 
-    
-  | Kleene es1 -> [(pi, es, [])]
 
 
-  ;;
 
 
 

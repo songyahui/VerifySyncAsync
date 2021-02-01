@@ -125,7 +125,7 @@ let string_of_state (state :signal):string =
 
 let string_of_sl (sl: instance):string = 
   List.fold_left (fun acc (sig_) -> 
-  acc ^ "" ^ 
+  acc ^ "," ^ 
   string_of_state sig_ (*^ (
     match n with 
       None -> ";"
