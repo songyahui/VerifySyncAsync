@@ -268,27 +268,39 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   
   match prog with 
     Halt -> current
-  (*
-  let (pi, his, cur, k) = current in 
-  
   | Yield -> 
-    (pi, Cons (his,Instance cur) , make_nothing env, k)
+    List.map (fun (pi, his, cur, k) -> (pi, Cons (his,Instance cur) , make_nothing env, k))  current
+  
   | Emit (s) -> 
-    (pi, Cons (his,Instance cur) , setState cur s 1, k) (* flag 0 - Zero, 1- One, 2-Wait *)
+    List.map (fun (pi, his, cur, k) ->(pi, Cons (his,Instance cur) , setState cur s 1, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
   | Await (s) -> 
-    (pi, Cons (his,Instance cur) , setState cur s 2, k) (* flag 0 - Zero, 1- One, 2-Wait *)
+    List.map (fun (pi, his, cur, k) ->(pi, Cons (his,Instance cur) , setState cur s 2, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
 
   | Present (s, p1, p2) ->
-    if isPresent s cur then forward env current p1 full 
-    else forward env current p2 full 
+    List.fold_left (fun acc (pi, his, cur, k) -> 
+      List.append acc (
+          if isPresent s cur then forward env current p1 full 
+          else forward env current p2 full) 
+    ) [] current
 
-  | Declear (s , p) -> forward (List.append env [s]) current p full 
-    
-  | Async (s, p, delay) -> 
+  | Declear (s , p) -> 
+    forward (List.append env [s]) current p full 
+  
+
+
+    (*
+  let  = current in 
+  
+  
+    | Async (s, p, delay) -> 
+    List.map (fun (pi, his, cur, k) ->
+
     let (pi1, his1, cur1, k1) = forward env current p full in 
     let term = Var getAnewVar in 
     (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), setState (make_nothing env) s 1, k1)
+    )  current
 
+  
   | Assert eff -> 
     let (re, _, _) = check_containment (pi, Cons (his, Instance cur)) eff in 
     if re then current 
