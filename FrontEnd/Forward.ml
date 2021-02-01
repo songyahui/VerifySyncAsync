@@ -366,7 +366,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   | Async (s, p, delay) -> 
     List.map (fun (pi1, his1, cur1, k1) ->
       let term = Var getAnewVar in 
-      (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), setState (make_nothing env) s 1, k1)
+      (PureAnd (pi1, GtEq (term, Number delay)), RealTime (Cons (his1, Instance cur1), term), [(One s)](*setState (make_nothing env) s 1*), k1)
         ) (forward env current p full)
 
   | Assert eff -> 
@@ -409,7 +409,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   | Abort (delay, p) ->
     List.map (fun (pi1, his1, cur1, k1) ->
     let term = Var getAnewVar in 
-    (PureAnd (pi1, Lt (term, Number delay)), RealTime (Cons (his1, Instance cur1),  term) , make_nothing env, k1)
+    (PureAnd (pi1, Lt (term, Number delay)), RealTime (Cons (his1, Instance cur1),  term) , [] (*make_nothing env*), k1)
     )
     (forward env current p full)
 
@@ -529,7 +529,11 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let initial = List.fold_left (fun acc (pi, es) -> List.append (splitEffects es pi) acc) [] pre in 
   let initial_states = List.map (fun (pi_, his, cur) -> (pi_, his, cur, None)) initial in 
   let final_states = forward oup_sig initial_states prog full in 
-  let (final:effect) = normalEffect (List.map (fun (pi, his, cur, _) -> (pi, Cons (his, Instance cur))) final_states) in  (*normalEffect merge_states*)
+  let (final:effect) = normalEffect (List.map (fun (pi, his, cur, _) -> 
+    match cur with 
+    [] -> (pi, his)
+  | _ -> 
+    (pi, Cons (his, Instance cur))) final_states) in  (*normalEffect merge_states*)
   let (report, _) = printReport final post true in 
 
   "\n========== Module: "^ nm ^" ==========\n" ^

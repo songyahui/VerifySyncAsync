@@ -150,7 +150,7 @@ pRog_aux:
 | RUN mn = VAR {Run mn}
 | ABORT s =  pRog WHEN p = INTE {Abort (p, s)}
 | AWAIT mn = VAR {Await mn}
-| ASYNC mn = VAR  LBRACK p = pRog RBRACK {Async(mn, p, 0)}
+| ASYNC mn = VAR d =INTE LBRACK p = pRog RBRACK {Async(mn, p, d)}
 | ASSERT eff = effect {Assert eff}
 
 pRog:

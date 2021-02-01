@@ -59,6 +59,7 @@ rule token = parse
 | "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "count" { COUNT }
+| "abort" {ABORT} 
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 | '>' {GT}
@@ -112,7 +113,7 @@ rule token = parse
 | 'w' {OMEGA}
 | "if" {IF}
 | "else" {ELSE}
-| "abort" {ABORT} 
+
 
 | "[]" {GLOBAL}
 | "include" {INCLUDE}
