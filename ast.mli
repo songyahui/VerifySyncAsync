@@ -2,7 +2,7 @@ type name = string (*name of the signal e.g., A B C*)
 type lable = string
 
 
-type signal = One of name | Zero of name | Wait of name 
+type signal = One of name | Zero of name 
 
 (*signal set*)
 type instance = signal list ;;
@@ -28,6 +28,7 @@ type realtime =
 
 type es = Bot  (*_|_*)
         | Emp  (* emp *)
+        | Wait of name 
         | Instance of instance (*logical tick*) (* {} *)
         | Cons of es * es (* .  *)
         | Choice of es * es (* \/ *)

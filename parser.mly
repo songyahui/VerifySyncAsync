@@ -54,7 +54,7 @@ ltl :
 singleVAR: 
 | var = VAR {[(One var)]}
 | LTLNOT var = VAR {[(Zero var)]}
-| QUESTION var = VAR {[(Wait var)]}
+
 
 existVar:
 | {[]}
@@ -97,6 +97,7 @@ pure:
 
 es:
 | EMPTY { Emp }
+| var = VAR QUESTION {Wait var}
 | LBRACK signals = existVar RBRACK 
 {
   

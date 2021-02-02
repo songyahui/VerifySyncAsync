@@ -120,7 +120,7 @@ let string_of_state (state :signal):string =
   match state with 
     One name -> name 
   | Zero name -> "!"^name 
-  | Wait name -> "?"^name ;;
+  ;;
 
 
 let string_of_sl (sl: instance):string = 
@@ -200,6 +200,7 @@ let rec string_of_es (es:es) :string =
   match es with 
     Bot -> "_|_"  
   | Emp -> "emp"
+  | Wait name -> name ^ "?"
   | Instance ins  -> string_of_instance ins
   | Cons (es1, es2) ->  "("^string_of_es es1 ^ " . " ^ string_of_es es2^")"
   | Kleene esIn -> "(" ^ string_of_es esIn ^ ")*" 
@@ -331,7 +332,6 @@ let compareSignal (s1 :signal) (s2:signal) : bool =
   match (s1, s2) with 
   | (One n1, One n2) -> String.compare n1 n2 == 0
   | (Zero n1, Zero n2) -> String.compare n1 n2 == 0
-  | (Wait n1, Wait n2) -> String.compare n1 n2 == 0
   | _ -> false 
   ;;
 
@@ -388,9 +388,10 @@ let rec nullable (es:es) : bool=
   match es with 
     Bot -> false 
   | Emp -> true
+  | Wait _ ->  false 
   | Instance _  -> false 
   | Cons (es1, es2) -> (nullable es1) && (nullable es2)
-  | Kleene _ -> false (* now kleene represents infinite trace *)  
+  | Kleene _ -> true (* now kleene represents infinite trace *)  
   (*| Ttimes (_, t) -> askZ3 (PureAnd (pi, Eq (t, Number 0))) *)
   | RealTime (es, rt) ->  nullable es (* askZ3 (realtimeToPure rt )*)
   | Choice (es1, es2) -> (nullable es1) || (nullable es2)
@@ -571,12 +572,29 @@ let rec concertive (es:es) (t:int): es =
   else Cons (es, concertive es (t -1))
   ;;
 
+let rec isThere (ins) (sig_) : bool = 
+  match ins with 
+    [] -> false 
+  | x:: xs -> if compareSignal sig_ x  then true else isThere xs sig_
+
+  ;;
+
+let normalIns (ins:instance): instance =
+  let rec aux current =  
+    match current with 
+    [] -> []
+  | x :: xs -> if isThere ins x  then aux xs else x:: aux xs 
+  in 
+  aux ins
+  ;;
+
 
 let rec normalES (es:es) (pi:pure):es = 
   match es with
     Bot -> es
   | Emp -> es
-  | Instance ins -> Instance ins  (*logical tick*)
+  | Wait _ -> es
+  | Instance ins -> Instance (normalIns ins)  (*logical tick*)
   | RealTime (es, rt) -> RealTime (normalES es pi, rt) 
   | Cons (Cons (esIn1, esIn2), es2)-> normalES (Cons (esIn1, Cons (esIn2, es2))) pi
   | Cons (es1, es2) -> 
@@ -586,8 +604,8 @@ let rec normalES (es:es) (pi:pure):es =
         (Emp, _) -> normalES2 
       | (_, Emp) -> normalES1
       | (Bot, _) -> Bot
-      | (Kleene esIn, _) -> Kleene esIn (* kleene now is infinite constructor *)
-
+      (*| (Kleene esIn, _) -> Kleene esIn (* kleene now is infinite constructor *)
+*)
       (*| (Kleene (esIn1), Kleene (esIn2)) -> 
           if aCompareES esIn1 esIn2 == true then normalES2
           else Cons (normalES1, normalES2)

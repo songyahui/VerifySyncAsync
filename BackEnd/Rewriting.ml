@@ -20,6 +20,7 @@ let rec fst_simple (es:es): instance list=
   match es with
     Bot -> []
   | Emp -> []
+  | Wait _ -> (raise (Foo "fst_simple: there is an unhandled wait"))
   | Instance ins ->  [(ins)]
   | Cons (es1 , es2) ->  if nullable es1 then append (fst_simple  es1) (fst_simple  es2) else fst_simple  es1
   | Choice (es1, es2) -> append (fst_simple  es1) (fst_simple  es2)
@@ -36,6 +37,7 @@ let rec fst (pi:pure) (es:es): fst list =
   match es with
     Bot -> []
   | Emp -> []
+  | Wait _ -> (raise (Foo "fst: there is an unhandled wait"))
   | Instance ins ->  
     let newTV = getAnewVar_rewriting in
     [(ins, newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
@@ -161,6 +163,7 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
   match es with
     Bot ->  []
   | Emp ->  []
+  | Wait _ -> (raise (Foo "derivative: there is an unhandled wait"))
   | Instance ins ->  
 
           if instansEntails fst_ins ins then [(pi, Emp)] 

@@ -186,7 +186,7 @@ let equla_List_of_State left right : bool=
 *)
 
 
-
+(*
 let setState (xs:instance) (s:string) (flag:int):instance =  (* flag 0 - Zero, 1- One, 2-Wait *)
   let rec helper li acc = 
   match li with 
@@ -199,6 +199,7 @@ let setState (xs:instance) (s:string) (flag:int):instance =  (* flag 0 - Zero, 1
     | _ -> helper xxs (List.append acc [x])
   in helper xs [];
   ;;
+  *)
 
 let rec isPresent name curr : bool = 
   match curr with 
@@ -237,6 +238,7 @@ let rec lengthOfEs es : int =
   match es with 
     Bot -> raise (Foo "Bot does not have length")
   | Emp -> 0
+  | Wait s -> 1
   | Instance _ -> 1
   | Cons (es1, es2) -> lengthOfEs es1 + lengthOfEs es2
   | Choice (es1, es2) -> if lengthOfEs es1 > lengthOfEs es2 then lengthOfEs es1 else lengthOfEs es2
@@ -249,6 +251,8 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
   match es with 
     Bot -> []
   | Emp -> [(pi, Emp, [])]
+  | Wait s -> [(pi, Wait s, [])]
+
   | Instance ins -> [(pi, Emp, ins)]
   | Cons (es1, es2) -> 
     let temp = splitEffects es2 pi in 
@@ -351,7 +355,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
   | Emit (s) -> 
     List.map (fun (pi, his, cur, k) ->(pi, his , ((One s)::cur )(*setState cur s 1*), k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
   | Await (s) -> 
-    List.map (fun (pi, his, cur, k) ->(pi, his , setState cur s 2, k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
+    List.map (fun (pi, his, cur, k) ->(pi, Cons (his, Cons(Wait s , Instance cur)) , [] (*setState cur s 2*), k))  current (* flag 0 - Zero, 1- One, 2-Wait *)
 
   | Present (s, p1, p2) ->
     List.fold_left (fun acc (pi, his, cur, k) -> 
