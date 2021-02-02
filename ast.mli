@@ -76,6 +76,8 @@ type prog_states = (pure * es * instance * name option) list
 
 type fst = (instance * string * pure)
 
+type parfst = SL of instance | W of name
+
 type ltl = Lable of string 
         | Next of ltl
         | Until of ltl * ltl

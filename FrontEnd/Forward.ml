@@ -289,7 +289,31 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
 
   ;;
 
-let rec derivativePar ins es :es =
+let rec fstPar (es) :parfst list = 
+  match es with 
+    Bot -> []
+  | Emp -> []
+  | Wait s -> [(W s)] 
+  | Instance ins ->  [(SL ins)]
+  | Cons (es1 , es2) ->  if nullable es1 then append (fstPar  es1) (fstPar  es2) else fstPar  es1
+  | Choice (es1, es2) -> append (fstPar  es1) (fstPar  es2)
+  | RealTime (es1, rt) -> fstPar es1
+  | Kleene es1 -> fstPar  es1
+  | Par (es1 , es2) -> 
+    (raise (Foo "should not be here fstPar"))
+    (*let fst1 = fstPar es1 in
+    let fst2 = fstPar es2 in
+    let combine = zip (fst1,  fst2) in 
+    List.map (fun (a, b) -> 
+    
+    List.append a b) combine
+    *)
+  
+
+    ;;
+
+
+let rec derivativePar (ins: parfst) es :es =
   match es with 
     Bot ->  Bot
   | Emp ->  Bot
@@ -315,29 +339,56 @@ let rec derivativePar ins es :es =
 
   ;;
 
+let rec isSigOne s ins: bool  =
+  match ins with 
+    [] -> false
+  | (One e) :: xs -> if String.compare e s == 0 then true else isSigOne s xs 
+  | x::xs -> isSigOne s xs 
+  ;;
+
 
 let rec parallelES pi1 pi2 es1 es2 : (pure * es) =
   let norES1 = normalES es1 pi1 in 
   let norES2 = normalES es2 pi2 in 
   print_string (string_of_es norES1 );
   print_string (string_of_es norES2 );
-  let fst1 = fst_simple norES1 in
-  let fst2 = fst_simple norES2 in 
+  let fst1 = fstPar norES1 in
+  let fst2 = fstPar norES2 in 
   let headcom = zip (fst1, fst2) in 
   let esLIST = List.map (
   fun (f1, f2) -> 
+
     let der1 = normalES  (derivativePar f1 norES1) pi1 in 
     let der2 = normalES  (derivativePar f2 norES2) pi2 in 
 
-
-    (match (der1, der2) with 
-    | (Emp, _) -> (TRUE, Cons (Instance (List.append f1 f2), der2))
-    | (_, Emp) -> (TRUE, Cons (Instance (List.append f1 f2), der1))
-    | (der1, der2) -> 
+    match (f1, f2) with  
+      (W _, W _ ) -> raise (Foo "there is a deadlock")
+    | (W s, SL ins) -> 
+      if isSigOne s ins then 
+        parallelES pi1 pi2 der1 der2
+      else 
+        let (p, es) = parallelES pi1 pi2 es1 der2  in 
+        (p, Cons (Instance ins, es))
+    | (SL ins, W s) -> 
+      if isSigOne s ins then 
+        parallelES pi1 pi2 der1 der2
+      else 
+        let (p, es) = parallelES pi1 pi2 der1 es2  in 
+        (p, Cons (Instance ins, es))
+    | (SL ins1, SL ins2) -> 
+      (match (der1, der2) with 
+      | (Emp, _) -> (TRUE, Cons (Instance (List.append ins1 ins2), der2))
+      | (_, Emp) -> (TRUE, Cons (Instance (List.append ins1 ins2), der1))
+      | (der1, der2) -> 
         let (pi, es) = (parallelES pi1 pi2 der1 der2) in 
-        (pi, Cons (Instance (List.append f1 f2), es))
+        (pi, Cons (Instance (List.append ins1 ins2), es))
       
     ) 
+
+
+
+
+    
   ) headcom
   in List.fold_left (fun (pacc, esacc) (p, e) -> (PureAnd(pacc, p), Choice(esacc, e)))  (PureAnd(pi1, pi2), Bot) esLIST
 
@@ -446,9 +497,9 @@ List.flatten(
       List.map ( fun ins ->
 
       match (ins, cur1) with 
-      | ([], _) -> (pi1, Cons (Cons (his, Instance cur), Kleene (Cons (derivativePar ins his1, Instance cur1))), make_nothing env, k1)
-      | (_, []) -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar ins his1, Instance ins))), make_nothing env, k1)
-      | _ -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar ins his1, Instance (List.append cur1 ins)))), make_nothing env, k1)
+      | ([], _) -> (pi1, Cons (Cons (his, Instance cur), Kleene (Cons (derivativePar (SL ins) his1, Instance cur1))), make_nothing env, k1)
+      | (_, []) -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar (SL ins) his1, Instance ins))), make_nothing env, k1)
+      | _ -> (pi1, Cons (Cons (his, Instance (List.append cur ins)), Kleene (Cons (derivativePar (SL ins) his1, Instance (List.append cur1 ins)))), make_nothing env, k1)
       ) (fst_simple his1)
     
     )
