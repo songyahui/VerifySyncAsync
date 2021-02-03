@@ -485,6 +485,9 @@ let rec compareES es1 es2 =
     instansEntails ins1 ins2
     
   | (Cons (es1L, es1R), Cons (es2L, es2R)) -> (compareES es1L es2L) && (compareES es1R es2R)
+  | (Choice (es1L, es1R), Choice (es2L, es2R)) -> ((compareES es1L es2L) && (compareES es1R es2R))
+    || ((compareES es1L es2R ) && (compareES es1R es2L))
+
   (*| (ESOr (es1L, es1R), ESOr (es2L, es2R)) -> 
       let one = ((compareES es1L es2L) && (compareES es1R es2R)) in
       let two =  ((compareES es1L es2R) && (compareES es1R es2L)) in 
@@ -495,7 +498,9 @@ let rec compareES es1 es2 =
       let termEq = compareTerm termL termR in
       insideEq && termEq
       *)
-  | (Kleene esL, Kleene esR) -> compareES esL esR
+  | (Kleene esL, Kleene esR) -> 
+      
+    compareES esL esR
   | (RealTime (es1, rt1), RealTime (es2, rt2) ) -> compareES es1 es2 && compareTerm rt1 rt2
   | _ -> false
 ;;
@@ -594,7 +599,7 @@ let rec normalES (es:es) (pi:pure):es =
     Bot -> es
   | Emp -> es
   | Wait _ -> es
-  | Instance ins -> Instance (normalIns ins)  (*logical tick*)
+  | Instance ins -> Instance ( ins)  (*logical tick*)
   | RealTime (es, rt) -> RealTime (normalES es pi, rt) 
   | Cons (Cons (esIn1, esIn2), es2)-> normalES (Cons (esIn1, Cons (esIn2, es2))) pi
   | Cons (es1, es2) -> 

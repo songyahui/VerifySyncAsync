@@ -312,33 +312,6 @@ let rec fstPar (es) :parfst list =
 
     ;;
 
-
-let rec derivativePar (ins: parfst) es :es =
-  match es with 
-    Bot ->  Bot
-  | Emp ->  Bot
-  | Instance ins ->  
-    if instansEntails ins ins then Emp
-    else Bot
-  | Cons (es1 , es2) -> 
-      let esF = derivativePar ins es1  in 
-      let esL = Cons(esF,  es2) in  
-      if nullable es1 
-      then 
-          let esR =  derivativePar ins es2 in 
-          Choice (esL, esR)
-      else esL
-
-  | Choice (es1, es2) -> 
-      let temp1 =  derivativePar ins es1  in
-      let temp2 =  derivativePar ins es2  in 
-      Choice (temp1,temp2)
-
-
-  
-
-  ;;
-
 let rec isSigOne s ins: bool  =
   match ins with 
     [] -> false
@@ -347,10 +320,50 @@ let rec isSigOne s ins: bool  =
   ;;
 
 
+let rec derivativePar (fst: parfst) es :es =
+  match es with 
+    Bot ->  Bot
+  | Emp ->  Bot
+  | Wait s -> 
+    (
+      match fst with 
+        W f ->  if String.compare f s == 0 then Emp else Bot
+      | SL ins -> if isSigOne s ins then Emp else Bot
+    )
+  | Instance ins ->  
+    (
+      match fst with 
+        W f ->  if isSigOne f ins then Emp else Bot
+      | SL f -> if instansEntails f ins then Emp else Bot
+    )
+    
+  | Cons (es1 , es2) -> 
+      let esF = derivativePar fst es1  in 
+      let esL = Cons(esF,  es2) in  
+      if nullable es1 
+      then 
+          let esR =  derivativePar fst es2 in 
+          Choice (esL, esR)
+      else esL
+
+  | Choice (es1, es2) -> 
+      let temp1 =  derivativePar fst es1  in
+      let temp2 =  derivativePar fst es2  in 
+      Choice (temp1,temp2)
+
+
+  
+
+  ;;
+
+
+
+
 let rec parallelES pi1 pi2 es1 es2 : (pure * es) =
   let norES1 = normalES es1 pi1 in 
   let norES2 = normalES es2 pi2 in 
-  print_string (string_of_es norES1 );
+  print_string ("\n");
+  print_string (string_of_es norES1 ^"\n===\n");
   print_string (string_of_es norES2 );
   let fst1 = fstPar norES1 in
   let fst2 = fstPar norES2 in 
@@ -397,7 +410,7 @@ let rec parallelES pi1 pi2 es1 es2 : (pure * es) =
  ;;
 
 let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec_prog list): prog_states =
-  
+
   match prog with 
     Halt -> current
   | Yield -> 
@@ -563,15 +576,6 @@ let rec append_instance_to_effect (eff:effect) (ins:instance) : effect =
   (*| Disj (eff1, eff2) -> Disj (append_instance_to_effect eff1 ins, append_instance_to_effect eff2 ins)*)
   ;;
 
-(*
-
-let rec splitEffects (eff:effect) : (pure*es) list = 
-  match eff with 
-    Effect (pi, es) -> [(pi, es)]
-  | Disj (eff1, eff2) -> List.append (splitEffects eff1) (splitEffects eff2)
-  ;;
-  
-  *)
 
 
 
@@ -584,6 +588,8 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
   let initial = List.fold_left (fun acc (pi, es) -> List.append (splitEffects es pi) acc) [] pre in 
   let initial_states = List.map (fun (pi_, his, cur) -> (pi_, his, cur, None)) initial in 
   let final_states = forward oup_sig initial_states prog full in 
+
+
   let (final:effect) = normalEffect (List.map (fun (pi, his, cur, _) -> 
     match cur with 
     [] -> (pi, his)

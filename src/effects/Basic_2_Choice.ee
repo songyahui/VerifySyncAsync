@@ -12,7 +12,7 @@ TRUE /\ {A, D}.{B, D} \/ ({A, D}.{B, D}) |- TRUE /\ {D, A}.{D, B}: true;
 
 TRUE /\ {A, C}.{A} |- TRUE /\ {A}.{A}.{C} \/ {A, C}.{A}: true;
 
-TRUE /\ {A}.{A}.{A} \/ ({A, D}.{B, D}) |- TRUE /\ {A}.{A}.{A}: false;
+TRUE /\ ({A}.{A}.{A}) \/ ({A, D}.{B, D}) |- TRUE /\ {A}.{A}.{A}: false;
 
 TRUE /\ {B, D}.{A, D} \/ ({A, D}.{B, D}) |- TRUE /\ {A}.{B} \/ ({A, D}.{B, D}) \/  ({B}.{D}): true;
 

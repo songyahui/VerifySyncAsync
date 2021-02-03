@@ -80,14 +80,7 @@ let rec appendEff_ES eff es:effect =
   ;;
 
 
-let ifShouldDisj (temp1) (temp2) : effect = 
-  List.append temp1 temp2
-  (*
-  match (temp1, temp2) with
-      ((pure1, evs1), (pure2, evs2)) -> 
-        (PureAnd(pure1, pure2),  Choice (evs1, evs2))
-        *)
-;;
+
 
 
 
@@ -110,7 +103,7 @@ let rec entailEffects (eff1:effect) (eff2:effect) : bool =
   match (eff1, eff2) with 
 
     ( (p1, es1) ::xs,  (p2, es2)::ys) -> 
-      if comparePure p1 p2 && compareES es1 es2 then true 
+      if comparePure p1 p2 && compareES es1 es2  then true
       else false 
   | _ -> false 
   (*| (Disj (f1, f2), Disj (f3, f4)) -> 
@@ -148,6 +141,12 @@ let rec getPureForTerms (fst_terms:terms) (fst_pure: pure) : pure =
 
   ;;
 
+let disjEffects eff : effect = 
+  normalEffect(
+  [List.fold_left (fun (pi_acc, es_acc) (pi, es) -> (PureAnd (pi_acc, pi), Choice (es_acc, es))) (TRUE, Bot) eff
+  ]
+    )  ;;
+
 let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool = 
   let rec aux inclusions = 
     match inclusions with 
@@ -180,13 +179,13 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       then let efF = derivative pi es1 fst in 
           let effL =  (appendEff_ES efF es2) in 
           let effR =  (derivative pi es2 fst) in 
-          normalEffect (ifShouldDisj effL effR)
+          disjEffects (List.append effL effR)
       else let efF = derivative pi es1 fst in 
           appendEff_ES efF es2    
   | Choice (es1, es2) -> 
       let temp1 =  (derivative pi es1 fst) in
       let temp2 =  (derivative pi es2 fst) in 
-      normalEffect (ifShouldDisj temp1 temp2)
+      disjEffects (List.append temp1 temp2)
   | RealTime (Instance insR, rt) -> 
       if instansEntails fst_ins insR 
       then 
@@ -272,9 +271,9 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
       (match li with 
         [] -> (true, acc, hypoacc ) 
       | ev::fs -> 
-          (*print_string ("\n"^string_of_Event ev^"\n\n");
-          *)
+          
           let deriL = checkDerivative eff1 ev in
+          
           let deriR = checkDerivative eff2 ev in
           let (re,tree,  hypo) =  containment hypoacc deriL deriR in 
           if re == false then (false , tree::acc, [])
