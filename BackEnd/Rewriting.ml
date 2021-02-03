@@ -39,18 +39,18 @@ let rec fst (pi:pure) (es:es): fst list =
   | Emp -> []
   | Wait _ -> (raise (Foo "fst: there is an unhandled wait"))
   | Instance ins ->  
-    let newTV = getAnewVar_rewriting in
+    let newTV = getAnewVar_rewriting () in
     [(ins, newTV, PureAnd (pi, GtEq (Var newTV, Number 0)))]
   | Cons (es1 , es2) ->  if nullable es1 then append (fst pi es1) (fst pi es2) else fst pi es1
   | Choice (es1, es2) -> append (fst pi es1) (fst pi es2)
   | RealTime (Instance ins, rt) -> 
-    let newTV = getAnewVar_rewriting in
+    let newTV = getAnewVar_rewriting () in
     [(ins, newTV, (PureAnd (pi, PureAnd(GtEq (Var newTV, Number 0), Eq (Var newTV, rt)) )))]
   | RealTime (es1, rt) -> 
     let ins_List = fst_simple es1 in 
     List.map 
     (fun ins ->
-      let newTV = getAnewVar_rewriting in
+      let newTV = getAnewVar_rewriting () in
       (ins, newTV, PureAnd ((PureAnd (pi, GtEq (Var newTV, Number 0))), LtEq (Var newTV, rt)))
     
     ) ins_List
@@ -147,6 +147,14 @@ let disjEffects eff : effect =
   ]
     )  ;;
 
+let rec getEqFromPure p : pure = 
+  match p with 
+    Eq (t1, t2) -> p 
+  | PureOr (p1, p2) -> PureOr (getEqFromPure p1, getEqFromPure p2)
+  | PureAnd (p1, p2) -> PureAnd (getEqFromPure p1, getEqFromPure p2)
+  | _ -> TRUE
+;;
+
 let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool = 
   let rec aux inclusions = 
     match inclusions with 
@@ -198,19 +206,21 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
         print_string (string_of_pure pure2 ^"\n");
         print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
         *)
-        if entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 then 
+        let eqs = getEqFromPure pure2 in 
+        if entailConstrains1 (PureAnd(eqs, PureAnd (pure1, pure_plus))) pure2 then 
         [(pi, Emp)] 
-        else []
-      else []
+        else (print_string (string_of_pure (PureAnd(eqs, PureAnd (pure1, pure_plus))) ^ " => " ^ string_of_pure pure2 ^" \n ");  [])
+      else (print_string ("I am here 2 \n "); [])
 
     
   | RealTime (es1, rt) -> 
     let ele_list = normalEffect (derivative pi es1 fst) in
     List.fold_left (fun acc (pi_temp, es_temp)-> 
-      (let newTV = getAnewVar_rewriting in
-      let pi_new = PureAnd (Lt (Var newTV, rt), Eq(Var newTV, Var fst_terms)) in 
+      (let newT1 = getAnewVar_rewriting () in
+      let newT2 = getAnewVar_rewriting () in
+      let pi_new = PureAnd (pi, PureAnd (Eq (Plus(Var newT1, Var newT2), rt), Eq(Var newT1, Var fst_terms))) in 
       if entailConstrains1 (pi_new) TRUE then 
-      (pi_new, es_temp) :: acc
+      (pi_new, RealTime (es_temp, Var newT2)) :: acc
       else acc
     )) [] ele_list
     
@@ -284,6 +294,13 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
     (resultFinal, Node (showEntail ^ "   [UNFOLD]",trees ), hypy)    
   in
   
+  
+  match (normalFormL, normalFormR) with 
+      (*this means the assertion or precondition is already fail*)
+    ([], _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
+  | (_, []) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+  | _ ->
+
   if ((nullableEffect normalFormL == true) && (nullableEffect normalFormR == false ))  then 
       (false, Node (showEntail ^ "   [NULLABLE]", []), evn)  
   else if reoccur evn normalFormL normalFormR then
@@ -294,11 +311,6 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
       (true, Node (showEntail ^ "   [REOCCUR]", []), evn)  
       )
   else 
-  match (normalFormL, normalFormR) with 
-      (*this means the assertion or precondition is already fail*)
-    ([], _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
-  | (_, []) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
-  | _ ->
   
   unfold normalFormL normalFormR evn 
   

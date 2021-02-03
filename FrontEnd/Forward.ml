@@ -279,7 +279,7 @@ let rec splitEffects (es:es) (pi:pure) :(pure* es* instance) list =
   | RealTime (es1, t) -> 
     let temp = splitEffects es1 pi in 
     List.map (fun (p, e, i) -> 
-    let newTV = getAnewVar_rewriting in
+    let newTV = getAnewVar_rewriting () in
     (PureAnd(p, LtEq(Var newTV, t)), RealTime (e, Var newTV), i)
     
     ) temp 

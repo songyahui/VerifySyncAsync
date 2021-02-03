@@ -23,7 +23,7 @@ let counter_rewriting = ref 0;;
 
 
 
-let getAnewVar_rewriting = 
+let getAnewVar_rewriting () = 
   counter_rewriting := ! counter_rewriting + 1; 
   "tv" ^ string_of_int !counter_rewriting;;
 
