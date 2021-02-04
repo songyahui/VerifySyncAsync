@@ -52,16 +52,19 @@ let rec fst (pi:pure) (es:es): fst list =
     (fun ins ->
       let newTV = getAnewVar_rewriting () in
       (ins, newTV, PureAnd ((PureAnd (pi, GtEq (Var newTV, Number 0))), LtEq (Var newTV, rt)))
-    
     ) ins_List
   | Kleene es1 -> fst pi es1
-  | Par (es1 , es2) -> 
-    let fst1 = fst pi es1 in
+  | Par (es1 , es2) -> raise (Foo "Par should not be here in fst")
+    (*let fst1 = fst pi es1 in
     let fst2 = fst pi  es2 in
     let combine = zip (fst1,  fst2) in 
     List.map (fun ((a, term1, pi1) , (b, term2, pi2)) -> 
-      (List.append a b, term1, PureAnd(PureAnd(pi1, pi2), Eq(Var term1, Var term2) )))
+      (List.append a b, term1, 
+      (*PureAnd(PureAnd(pi1, pi2), Eq(Var term1, Var term2) )*)
+      Eq(Var term1, Var term2)
+      ))
        combine
+       *)
 ;;
 
 
@@ -197,8 +200,6 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
   | RealTime (Instance insR, rt) -> 
       if instansEntails fst_ins insR 
       then 
-        let pure1 =  fst_pure in 
-        let pure2 =  pi in 
         let pure_plus = Eq (rt, Var fst_terms) in 
         (*print_string ("\n********************\n");
         print_string (string_of_pure (PureAnd (pure1, pure_plus)));
@@ -206,11 +207,11 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
         print_string (string_of_pure pure2 ^"\n");
         print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
         *)
-        let eqs = getEqFromPure pure2 in 
-        if entailConstrains1 (PureAnd(eqs, PureAnd (pure1, pure_plus))) pure2 then 
-        [(pi, Emp)] 
-        else (print_string (string_of_pure (PureAnd(eqs, PureAnd (pure1, pure_plus))) ^ " => " ^ string_of_pure pure2 ^" \n ");  [])
-      else (print_string ("I am here 2 \n "); [])
+        let eqs = getEqFromPure pi in 
+        if entailConstrains1 (PureAnd(eqs, PureAnd (fst_pure, pure_plus))) pi then 
+        [(PureAnd (pi, pure_plus), Emp)] 
+        else (print_string (string_of_pure (PureAnd(eqs, PureAnd (fst_pure, pure_plus))) ^ " => " ^ string_of_pure pi ^" \n ");  [])
+      else []
 
     
   | RealTime (es1, rt) -> 
@@ -218,9 +219,11 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
     List.fold_left (fun acc (pi_temp, es_temp)-> 
       (let newT1 = getAnewVar_rewriting () in
       let newT2 = getAnewVar_rewriting () in
-      let pi_new = PureAnd (pi, PureAnd (Eq (Plus(Var newT1, Var newT2), rt), Eq(Var newT1, Var fst_terms))) in 
-      if entailConstrains1 (pi_new) TRUE then 
-      (pi_new, RealTime (es_temp, Var newT2)) :: acc
+      let eqs = getEqFromPure pi in 
+      let cons = PureAnd (Eq (Plus(Var newT1, Var newT2), rt), Eq(Var newT1, Var fst_terms)) in 
+      let pi_new = PureAnd ( pi_temp, cons) in 
+      if entailConstrains1 (PureAnd (pi_new, eqs)) pi then 
+      (PureAnd (pi, cons), RealTime (es_temp, Var newT2)) :: acc
       else acc
     )) [] ele_list
     
