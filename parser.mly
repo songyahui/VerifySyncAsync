@@ -10,7 +10,8 @@
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUEToken FALSEToken NEGATION
 (* LBrackets  RBrackets POWER*)
-%left CONCAT DISJ SIMI 
+%token KEYVAR
+%left CONCAT DISJ SIMI  
 (* %right SIMI PAR *)
 %token FUTURE GLOBAL IMPLY LTLNOT NEXT UNTIL LILAND LILOR 
 %token LSPEC RSPEC ENSURE REQUIRE MODULE OUT INOUT
@@ -29,10 +30,11 @@
 
 statement_list:
 | EOF {[]}
-| a = statement r = statement_list { append [a] r }
+| a = statement SIMI r = statement_list { append [a] r }
 
 statement:
 | s = STRING {ImportStatement s}
+| KEYVAR str = VAR EQ p = literal {VarDeclaration (str, (Literal p))}
 
 literal: 
 | n = INTE {PInt n}
@@ -161,7 +163,7 @@ pRog_aux:
 | TRAP mn = VAR IN p1 = pRog END TRAP {Trap (mn, p1)}
 | EXIT mn = VAR  {Break mn}
 (*| EXIT mn = VAR d = INTE  {Exit (mn, d)}*)
-| RUN mn = VAR LPAR obj = separated_list(COMMA, literal) RPAR{Run (mn, obj)}
+| mn = VAR LPAR obj = separated_list(COMMA, literal) RPAR{Run (mn, obj)}
 | ABORT s =  pRog WHEN p = INTE {Abort (p, s)}
 | AWAIT mn = VAR {Await mn}
 | ASYNC mn = VAR d =INTE LBRACK p = pRog RBRACK {Async(mn, p, d)}

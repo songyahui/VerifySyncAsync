@@ -30,6 +30,7 @@ let id = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 rule token = parse
 | white    { token lexbuf }
 | newline  { next_line lexbuf; token lexbuf }
+| "var" {KEYVAR}
 | "halt" { NOTHING }
 | "yield" {PAUSE}  
 | "loop" {LOOP}
@@ -60,6 +61,7 @@ rule token = parse
 | "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
 | "count" { COUNT }
 | "abort" {ABORT} 
+
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 | '>' {GT}
