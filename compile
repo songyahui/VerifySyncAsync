@@ -9,7 +9,6 @@ ocamlc -c lexer.ml
 ocamlc -c -o Askz3.cmo Askz3.ml
 ocamlc -c Pretty.ml
 
-ocamlc -c -o Promise.cmo JP/Promise.ml
 
 ocamlc -c -o Rewriting.cmo  BackEnd/Rewriting.ml
 
@@ -23,7 +22,6 @@ ocamlc -o hip parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo Forward.cm
 
 ocamlc -o sleek parser.cmo Askz3.cmo lexer.cmo Pretty.cmo Rewriting.cmo sleek.cmo
 
-ocamlc -o promise Promise.cmo
 
 #ocamlc -o ltl parser.cmo  lexer.cmo Pretty.cmo LTL_Traslator.cmo
 

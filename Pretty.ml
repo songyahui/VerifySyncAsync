@@ -234,6 +234,12 @@ let rec string_of_effect(eff:effect): string =
   
 ;;
 
+let string_of_literal (l:literal) : string = 
+  match l with 
+  | PStr str -> str
+  | PInt n -> string_of_int n 
+  | PVar mn -> mn
+  ;;
 
 let rec string_of_prog (p : prog) : string =
   match p with
@@ -254,7 +260,7 @@ let rec string_of_prog (p : prog) : string =
 *)
   | Trap (mn, prog) -> "trap "  ^ mn ^" in\n" ^ string_of_prog prog ^" )"^ "\nend trap"
   | Break  mn -> "exit " ^ mn 
-  | Run mn -> "run " ^ mn
+  | Run (mn, lit_list) -> "run " ^ mn ^ "(" ^ List.fold_left (fun acc a-> acc ^"," ^ string_of_literal a ) "" lit_list ^ ")"
   | Abort (s, prog) -> "abort \n" ^ string_of_prog prog ^ "\nwhen "^ string_of_int s
   | Async (mn, prog, act) -> "async "^ mn ^ string_of_prog prog ^ string_of_int act
   | Await (pro) -> "await "^ pro 

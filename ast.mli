@@ -54,6 +54,13 @@ type inclusion = effect * effect;;
 
 type inclusion_sleek = effect * effect * bool;;    (*the bool is the expected result*) 
 
+type pattern = In of string | Out of string | INOUT of string
+
+type literal =
+        | PVar of string
+        | PStr of string
+        | PInt of int
+
 type prog = Halt 
           | Yield 
           | Seq of prog * prog 
@@ -64,13 +71,24 @@ type prog = Halt
           | Present of name * prog * prog
           | Trap of lable * prog
           | Break of lable
-          | Run of name
+          | Run of name * (literal list)
           | Abort of int * prog
 (*Esterel SYNC*)
           | Async of name * prog * int (*the delay*)  (*set a timeout*)
           | Await of name 
           | Assert of effect
 (*JS ASYNC*)
+          | Literal of literal
+
+
+type statement = 
+        | ImportStatement of string
+        | VarDeclaration of string * prog
+        | ModuleDeclaration of (pattern list) * prog
+
+
+
+
 
 type prog_states = (pure * es * instance * name option) list
 

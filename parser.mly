@@ -2,7 +2,7 @@
 %{ open List %}
 
 
-%token <string> VAR
+%token <string> VAR STRING
 %token <int> INTE
 %token <bool> TRUEE FALSEE 
 %token NOTHING PAUSE PAR  LOOP SIGNAL LPAR RPAR EMIT PRESENT TRAP EXIT SIMI
@@ -16,8 +16,9 @@
 %token LSPEC RSPEC ENSURE REQUIRE MODULE OUT INOUT
 %token LBrackets RBrackets HIPHOP 
 
-%start full_prog specProg pRog ee ltl_p
+%start full_prog specProg pRog ee ltl_p statement_list
 %type <(Ast.spec_prog) list> full_prog
+%type <(Ast.statement) list> statement_list
 %type <Ast.spec_prog> specProg
 %type <Ast.prog> pRog
 %type <(Ast.inclusion_sleek) list > ee
@@ -25,6 +26,18 @@
 
 
 %%
+
+statement_list:
+| EOF {[]}
+| a = statement r = statement_list { append [a] r }
+
+statement:
+| s = STRING {ImportStatement s}
+
+literal: 
+| n = INTE {PInt n}
+| str = STRING {PStr str}
+| str = VAR {PVar str}
 
 full_prog:
 | EOF {[]}
@@ -148,7 +161,7 @@ pRog_aux:
 | TRAP mn = VAR IN p1 = pRog END TRAP {Trap (mn, p1)}
 | EXIT mn = VAR  {Break mn}
 (*| EXIT mn = VAR d = INTE  {Exit (mn, d)}*)
-| RUN mn = VAR {Run mn}
+| RUN mn = VAR LPAR obj = separated_list(COMMA, literal) RPAR{Run (mn, obj)}
 | ABORT s =  pRog WHEN p = INTE {Abort (p, s)}
 | AWAIT mn = VAR {Await mn}
 | ASYNC mn = VAR d =INTE LBRACK p = pRog RBRACK {Async(mn, p, d)}

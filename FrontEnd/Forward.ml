@@ -481,7 +481,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
     )
     (forward env current p full)
 
-  | Run mn ->
+  | Run (mn, _) ->
   List.fold_left (fun acc (pi, his, cur, k) ->
 
     List.append acc (  
@@ -611,6 +611,20 @@ let verifier (spec_prog:spec_prog) (full: spec_prog list):string =
 let forward_verification (progs:spec_prog list):string = 
   List.fold_left (fun acc a -> acc ^ "\n\n" ^ verifier a progs) "" progs ;; 
 
+
+
+let string_of_statement (state:statement) : string = 
+  match state with
+  | ImportStatement mn ->  mn  
+  | _ -> "later"
+;;
+
+let rec string_of_program (states:statement list): string = 
+  match states with
+    [] -> ""
+  | x::xs -> string_of_statement x ^ "\n\n" ^ string_of_program xs 
+;;
+
 let () =
   let inputfile = (Sys.getcwd () ^ "/" ^ Sys.argv.(1)) in
 (*    let outputfile = (Sys.getcwd ()^ "/" ^ Sys.argv.(2)) in
@@ -619,10 +633,13 @@ print_string (inputfile ^ "\n" ^ outputfile^"\n");*)
   try
       let lines =  (input_lines ic ) in
       let line = List.fold_right (fun x acc -> acc ^ "\n" ^ x) (List.rev lines) "" in
-      let progs = Parser.full_prog Lexer.token (Lexing.from_string line) in
+      let progs = Parser.statement_list Lexer.token (Lexing.from_string line) in
 
-      (*print_string (string_of_full_prog progs^"\n");*)
+      (*print_string (string_of_full_prog progs^"\n");
       print_string ( (forward_verification progs) ^"\n");
+      *)
+      print_string (string_of_program progs ^"\n");
+      
       
       flush stdout;                (* 现在写入默认设备 *)
       close_in ic                  (* 关闭输入通道 *)

@@ -105,6 +105,8 @@ rule token = parse
 
 | "/*@" {LSPEC}
 | "@*/" {RSPEC}
+| '"'      { read_string (Buffer.create 17) lexbuf }
+
 | eof { EOF }
 
 (*
@@ -142,7 +144,7 @@ rule token = parse
 | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 
 
-(* part 5 
+(* part 5   *)
 and read_string buf =
   parse
   | '"'       { STRING (Buffer.contents buf) }
@@ -160,4 +162,4 @@ and read_string buf =
   | _ { raise (SyntaxError ("Illegal string character: " ^ Lexing.lexeme lexbuf)) }
   | eof { raise (SyntaxError ("String is not terminated")) }
 
-  *)
+
