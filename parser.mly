@@ -10,7 +10,7 @@
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ COMMA CONCAT  KLEENE END IN RUN
 %token THEN ELSE ABORT WHEN LBRACK RBRACK POWER PLUS MINUS TRUEToken FALSEToken NEGATION
 (* LBrackets  RBrackets POWER*)
-%token KEYVAR
+%token KEYVAR EXPORTS
 %left CONCAT DISJ SIMI  
 (* %right SIMI PAR *)
 %token FUTURE GLOBAL IMPLY LTLNOT NEXT UNTIL LILAND LILOR 
@@ -30,11 +30,12 @@
 
 statement_list:
 | EOF {[]}
-| a = statement SIMI r = statement_list { append [a] r }
+| a = statement  r = statement_list { append [a] r }
 
 statement:
 | s = STRING {ImportStatement s}
-| KEYVAR str = VAR EQ p = literal {VarDeclaration (str, (Literal p))}
+| KEYVAR str = VAR EQ p = pRog_aux SIMI {VarDeclaration (str, ( p))}
+| EXPORTS CONCAT VAR EQ VAR VAR CONCAT VAR LPAR str = VAR COMMA n = STRING  RPAR SIMI {ExportStatement (str, n)}
 
 literal: 
 | n = INTE {PInt n}

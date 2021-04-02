@@ -45,8 +45,9 @@ rule token = parse
 | "trap" {TRAP}
 | "exit" {EXIT}
 | "emp" { EMPTY }
-| "require" {REQUIRE}
-| "ensure" {ENSURE}
+| "requires" {REQUIRE}
+| "ensures" {ENSURE}
+| "exports" {EXPORTS}
 | "module" {MODULE}
 | "hiphop" {HIPHOP}
 | "inout" {INOUT}
