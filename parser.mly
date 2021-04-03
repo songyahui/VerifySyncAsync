@@ -32,6 +32,10 @@ literal:
 
 
 expression:
+| NEW ex = expression {NewExpr ex}
+| b = binary {b}
+
+expr_aux:
 | l = literal {Literal l }
 | str = VAR ex = varOraccess 
   {
@@ -39,9 +43,7 @@ expression:
     | None -> Variable str
     | Some obj -> Access  (str:: obj)
   }
-| ex1 = expression LPAR obj  = call_aux RPAR {FunctionCall (ex1, obj)}
-| NEW ex = expression {NewExpr ex}
-| b = binOp  {b}
+
 
 varOraccess:
 | {None}
@@ -55,18 +57,33 @@ call_aux1:
 | {[]}
 | COMMA obj = call_aux {obj}
 
-binOp:
-| e1 = expression PLUS e2 = expression   {BinOp ( "+", e1, e2)}
-| e1 = expression MINUS e2 = expression   {BinOp ( "-", e1, e2)}
-| e1 = expression EQ e2 = expression   {BinOp ( "=", e1, e2)}
-| e1 = expression KLEENE e2 = expression   {BinOp ( "*", e1, e2)}
-| e1 = expression LT e2 = expression   {BinOp ( "<", e1, e2)}
-| e1 = expression GT e2 = expression   {BinOp ( ">", e1, e2)}
-| e1 = expression LTEQ e2 = expression   {BinOp ( "<=", e1, e2)}
-| e1 = expression GTEQ e2 = expression   {BinOp ( ">=", e1, e2)}
+binary :
+| ex1 = expr_aux v = maybebinary_aux {
+  match v with 
+  | None -> ex1 
+  | Some (Left (str, ex2)) -> BinOp (str, ex1, ex2)
+  | Some (Right (obj)) -> FunctionCall (ex1, obj)
+}
+
+maybebinary_aux:
+| {None}
+| obj = binary_aux {
+  Some obj
+}
+
+binary_aux:
+| LPAR obj  = call_aux RPAR {Right (obj)}
+| PLUS e2 = expression   {Left ( "+", e2)}
+| MINUS e2 = expression   { Left( "-", e2)}
+| EQ e2 = expression   {Left ( "=", e2)}
+| KLEENE e2 = expression   {Left ( "*", e2)}
+| LT e2 = expression   {Left ( "<", e2)}
+| GT e2 = expression   {Left ( ">", e2)}
+| LTEQ e2 = expression   {Left ( "<=", e2)}
+|  GTEQ e2 = expression   {Left ( ">=", e2)}
 
 
 statement:
 | s = STRING {ImportStatement s}
-| VARKEY str = VAR EQ ex =expression SIMI {VarDeclear (str, ex) }
-| EXPORTS CONCAT ex = expression EQ ex2 = expression  SIMI{ExportStatement(ex,ex2)}
+| VARKEY str = VAR EQ ex = expression SIMI {VarDeclear (str, ex) }
+| EXPORTS CONCAT ex = VAR EQ ex2 = expression  SIMI{ExportStatement(Variable ex,ex2)}

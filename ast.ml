@@ -1,5 +1,8 @@
 (* Hiphop.js Syntax *)
 (*-| Representations for modules' exports.*)
+
+type ('a, 'b)  either = Left of 'a | Right of 'b
+
 type literal = 
     | INT of int
     | STRING of string
