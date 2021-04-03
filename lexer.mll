@@ -41,7 +41,9 @@ rule token = parse
 | "/\\" {CONJ}
 | ">=" {GTEQ}
 | "<=" {LTEQ}
-
+| "var" {VARKEY}
+| "new" {NEW}
+| "exports" {EXPORTS}
 | '(' { LPAR }
 | ')' { RPAR }
 | '{' { LBRACK  }
@@ -56,6 +58,7 @@ rule token = parse
 | '-' { MINUS }
 | '~' {NEGATION}
 | ',' { COMMA }
+| '*' {KLEENE}
 | ':' { COLON }
 | ';' { SIMI }
 | '"'      { read_string (Buffer.create 17) lexbuf }

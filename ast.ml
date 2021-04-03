@@ -1,10 +1,23 @@
 (* Hiphop.js Syntax *)
 (*-| Representations for modules' exports.*)
+type literal = 
+    | INT of int
+    | STRING of string
+    | BOOL of bool
 
 
+type expression = 
+    | Variable of string
+    | Literal of literal
+    | Access of string list 
+    | BinOp of string * expression * expression
+    | FunctionCall of expression * expression list 
+    | NewExpr of expression
 
 type statement = 
     | ImportStatement of string
+    | ExportStatement of expression * expression
+    | VarDeclear of string * expression 
    
 
 
@@ -32,11 +45,6 @@ type _type =
     | TypeRecord of ( ( mn*  _type ) list)
     | TypeTuple of ( _type list)
     | TypeApplication of _type * _type
-
-type literal = Character of char
-    | String of string
-    | Integer of int
-    | Float of float
 
 
 type pattern = PWildcard

@@ -4,9 +4,28 @@ open Ast
 
 exception Foo of string
 
+let string_of_literal (l:literal) : string = 
+  match l with 
+  | STRING str -> str
+  | INT n -> string_of_int n 
+  | BOOL f -> string_of_bool f
+  ;;
+
+let rec string_of_expression (expr: expression): string =
+  match expr with 
+  | Variable mn -> mn
+  | Literal lit -> string_of_literal lit
+  | Access mn_li -> List.fold_left (fun acc a -> acc ^"."^a) "." mn_li   
+  | BinOp (str, e2, e3) -> string_of_expression e2 ^ " "^ str ^ " " ^ string_of_expression e3
+  | FunctionCall (ex, ex_li) -> string_of_expression ex ^ "(" ^List.fold_left (fun acc a -> acc ^","^string_of_expression a) "." ex_li    ^")"
+  | NewExpr ex -> "new " ^ string_of_expression ex
+;;
 let string_of_statement (state) : string = 
   match state with
   | ImportStatement str -> str 
+  | VarDeclear (str, ex) -> "var " ^ str ^" = "^ string_of_expression ex 
+  | ExportStatement (ex1, ex2) ->"exports." ^ string_of_expression ex1 ^ " = " ^ string_of_expression ex2
+
   ;;
 
 let rec string_of_program (states : statement list) : string =
