@@ -8,7 +8,8 @@
 %token  LPAR RPAR SIMI LBrackets  RBrackets  COMMA LBRACK RBRACK      
 %token  MINUS PLUS POWER TRUEToken COLON FALSEToken NEGATION
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ  CONCAT 
-%token VARKEY KLEENE NEW EXPORTS
+%token VARKEY KLEENE NEW EXPORTS HIPHOP MODULE IN OUT 
+%token EMIT AWAIT
 
 
 %start program
@@ -34,6 +35,8 @@ literal:
 expression:
 | NEW ex = expression {NewExpr ex}
 | b = binary {b}
+| EMIT LPAR ex = expression RPAR {Emit ex}
+| AWAIT LPAR ex = expression RPAR {Await ex}
 
 expr_aux:
 | l = literal {Literal l }
@@ -87,3 +90,20 @@ statement:
 | s = STRING {ImportStatement s}
 | VARKEY str = VAR EQ ex = expression SIMI {VarDeclear (str, ex) }
 | EXPORTS CONCAT ex = VAR EQ ex2 = expression  SIMI{ExportStatement(Variable ex,ex2)}
+| HIPHOP MODULE  mn = VAR LPAR parm = parameter RPAR LBRACK  ex = expression RBRACK {ModelDeclear (mn, parm, ex)}
+
+param:
+| IN str = VAR {IN str}
+| OUT str = VAR {OUT str}
+
+
+parameter:
+| {[]}
+| p = param obj = maybeNext {
+  match obj with 
+  | None -> [p]
+  | Some obj -> p::obj}
+
+maybeNext:
+| {None}
+| COMMA v = parameter {Some v}

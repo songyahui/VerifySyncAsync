@@ -4,6 +4,12 @@ open Ast
 
 exception Foo of string
 
+let string_of_param (p : param) : string =
+  match p with 
+  | IN str -> "in " ^ str 
+  | OUT str -> "out " ^ str
+  ;;
+
 let string_of_literal (l:literal) : string = 
   match l with 
   | STRING str -> str
@@ -19,13 +25,16 @@ let rec string_of_expression (expr: expression): string =
   | BinOp (str, e2, e3) -> string_of_expression e2 ^ " "^ str ^ " " ^ string_of_expression e3
   | FunctionCall (ex, ex_li) -> string_of_expression ex ^ "(" ^List.fold_left (fun acc a -> acc ^","^string_of_expression a) "." ex_li    ^")"
   | NewExpr ex -> "new " ^ string_of_expression ex
+  | Emit ex -> "emit " ^ string_of_expression ex
+  | Await ex -> "emit " ^ string_of_expression ex
+
 ;;
 let string_of_statement (state) : string = 
   match state with
   | ImportStatement str -> str 
   | VarDeclear (str, ex) -> "var " ^ str ^" = "^ string_of_expression ex 
   | ExportStatement (ex1, ex2) ->"exports." ^ string_of_expression ex1 ^ " = " ^ string_of_expression ex2
-
+  | ModelDeclear (mn, p_li, ex) -> "hiphop module " ^ mn ^"("^ List.fold_left (fun acc a -> acc ^ "," ^ string_of_param a) "" p_li ^") {" ^ string_of_expression ex ^"\n }"
   ;;
 
 let rec string_of_program (states : statement list) : string =

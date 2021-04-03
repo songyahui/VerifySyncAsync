@@ -44,6 +44,12 @@ rule token = parse
 | "var" {VARKEY}
 | "new" {NEW}
 | "exports" {EXPORTS}
+| "hiphop" {HIPHOP} 
+| "module" {MODULE}
+| "in" {IN}
+| "out" {OUT}
+| "emit" {EMIT}
+| "await" {AWAIT}
 | '(' { LPAR }
 | ')' { RPAR }
 | '{' { LBRACK  }

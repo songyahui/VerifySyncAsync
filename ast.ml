@@ -16,11 +16,19 @@ type expression =
     | BinOp of string * expression * expression
     | FunctionCall of expression * expression list 
     | NewExpr of expression
+    | Emit of expression 
+    | Await of expression 
+
+
+type param = 
+    | IN of string
+    | OUT of string 
 
 type statement = 
     | ImportStatement of string
     | ExportStatement of expression * expression
     | VarDeclear of string * expression 
+    | ModelDeclear of string * param list * expression
    
 
 
