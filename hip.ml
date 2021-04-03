@@ -19,16 +19,24 @@ let string_of_literal (l:literal) : string =
 
 let rec string_of_expression (expr: expression): string =
   match expr with 
+  | Unit -> "()"
   | Variable mn -> mn
   | Literal lit -> string_of_literal lit
   | Access mn_li -> List.fold_left (fun acc a -> acc ^"."^a) "." mn_li   
   | BinOp (str, e2, e3) -> string_of_expression e2 ^ " "^ str ^ " " ^ string_of_expression e3
   | FunctionCall (ex, ex_li) -> string_of_expression ex ^ "(" ^List.fold_left (fun acc a -> acc ^","^string_of_expression a) "." ex_li    ^")"
   | NewExpr ex -> "new " ^ string_of_expression ex
-  | Emit ex -> "emit " ^ string_of_expression ex
+  | Emit (str, ex) -> "emit " ^ str ^ "(" ^ 
+    (match ex with 
+    | None -> ")"
+    | Some ex -> string_of_expression ex ^")"
+    )
   | Await ex -> "emit " ^ string_of_expression ex
+  | DoEvery (ex1, ex2) -> "do:\n " ^ string_of_expression ex1 ^ "every: " ^ string_of_expression ex2
+  | ForkPar (e_li) -> "PAR:\n " ^ List.fold_left (fun acc a -> acc ^"\n||\n"^string_of_expression a) "" e_li
+  | Seq (ex1, ex2) -> "Seq:\n " ^ string_of_expression ex1 ^ "; " ^ string_of_expression ex2
 
-;;
+  ;;
 let string_of_statement (state) : string = 
   match state with
   | ImportStatement str -> str 

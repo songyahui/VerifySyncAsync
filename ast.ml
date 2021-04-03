@@ -1,7 +1,7 @@
 (* Hiphop.js Syntax *)
 (*-| Representations for modules' exports.*)
 
-type ('a, 'b)  either = Left of 'a | Right of 'b
+type ('a, 'b, 'c)  either = Left of 'a | Right of 'b 
 
 type literal = 
     | INT of int
@@ -10,14 +10,19 @@ type literal =
 
 
 type expression = 
+    | Unit
     | Variable of string
     | Literal of literal
     | Access of string list 
     | BinOp of string * expression * expression
     | FunctionCall of expression * expression list 
     | NewExpr of expression
-    | Emit of expression 
+    | Emit of string * expression option
     | Await of expression 
+    | DoEvery of expression * expression 
+    | ForkPar of expression list 
+    | Seq of expression * expression 
+
 
 
 type param = 

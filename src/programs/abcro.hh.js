@@ -11,7 +11,7 @@ hiphop module prg( in A, in B, in C, in R, out O ) {
 	 await( B.now );
       } par {
 	 await( C.now );
-      }
+      };
       emit O();
    } every( R.now )
 }

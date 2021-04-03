@@ -50,6 +50,10 @@ rule token = parse
 | "out" {OUT}
 | "emit" {EMIT}
 | "await" {AWAIT}
+| "do" {DO}
+| "every" {EVERY}
+| "fork" {FORK}
+| "par" {PAR}
 | '(' { LPAR }
 | ')' { RPAR }
 | '{' { LBRACK  }

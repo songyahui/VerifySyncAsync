@@ -9,7 +9,7 @@
 %token  MINUS PLUS POWER TRUEToken COLON FALSEToken NEGATION
 %token EOF GT LT EQ CONJ GTEQ LTEQ ENTIL EMPTY DISJ  CONCAT 
 %token VARKEY KLEENE NEW EXPORTS HIPHOP MODULE IN OUT 
-%token EMIT AWAIT
+%token EMIT AWAIT DO EVERY FORK PAR
 
 
 %start program
@@ -32,11 +32,37 @@ literal:
 | str = STRING {STRING str}
 
 
+
+
+
+expression_shell:
+| {Unit}
+| ex1 = expression obj = maybeSeq {
+  match obj with 
+  | None -> ex1 
+  | Some n -> Seq(ex1, n)
+  }
+
+maybeSeq:
+| {None}
+| SIMI n = expression_shell {Some n}
+
+
 expression:
 | NEW ex = expression {NewExpr ex}
 | b = binary {b}
-| EMIT LPAR ex = expression RPAR {Emit ex}
+| EMIT  ex = VAR LPAR obj = maybeExpr RPAR {Emit (ex,obj) }
 | AWAIT LPAR ex = expression RPAR {Await ex}
+| DO LBRACK ex1 = expression_shell RBRACK EVERY LPAR ex2 = expression RPAR{DoEvery (ex1, ex2)}
+| FORK LBRACK ex1 = expression_shell RBRACK PAR LBRACK ex2 = expression_shell RBRACK obj = maybePar {ForkPar (ex1::ex2::obj)}
+
+maybeExpr:
+| {None}
+| PAR ex = expression {Some ex}
+
+maybePar:
+| {[]}
+| PAR LBRACK ex2 = expression_shell RBRACK {[ex2]}
 
 expr_aux:
 | l = literal {Literal l }
@@ -85,12 +111,11 @@ binary_aux:
 | LTEQ e2 = expression   {Left ( "<=", e2)}
 |  GTEQ e2 = expression   {Left ( ">=", e2)}
 
-
 statement:
 | s = STRING {ImportStatement s}
 | VARKEY str = VAR EQ ex = expression SIMI {VarDeclear (str, ex) }
 | EXPORTS CONCAT ex = VAR EQ ex2 = expression  SIMI{ExportStatement(Variable ex,ex2)}
-| HIPHOP MODULE  mn = VAR LPAR parm = parameter RPAR LBRACK  ex = expression RBRACK {ModelDeclear (mn, parm, ex)}
+| HIPHOP MODULE  mn = VAR LPAR parm = parameter RPAR LBRACK  ex = expression_shell RBRACK {ModelDeclear (mn, parm, ex)}
 
 param:
 | IN str = VAR {IN str}
