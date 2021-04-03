@@ -1,5 +1,3 @@
-#!/bin/bash
-# My first script
 rm *.cmi
 rm *.cmo
 
@@ -8,6 +6,3 @@ rm parser.ml
 rm parser.mli
 
 rm hip
-rm sleek
-rm ltl
-rm promise

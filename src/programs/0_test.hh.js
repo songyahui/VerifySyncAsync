@@ -1,0 +1,2 @@
+"use hiphop"
+"use hopscript"

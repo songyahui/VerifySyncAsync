@@ -19,56 +19,26 @@ let int =  '-'? ['0'-'9'] ['0'-'9']*
 let digit = ['0'-'9']
 let frac = '.' digit*
 let exp = ['e' 'E'] ['-' '+']? digit+
-let float = digit* frac? exp?
+let float = digit+ frac? exp?
 
 (* part 3 *)
 let white = [' ' '\t']+
 let newline = '\n' | '\r' | "\r\n" 
-let id = ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let id = ['A'-'Z' 'a'-'z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let op = ['+' '\\' '-' '/' '*' '=' '.' '$' '<' '>' ':' '&''|''^''?''%''#''@''~''!''+''|']+
 
 
 rule token = parse
 | white    { token lexbuf }
-| newline  { next_line lexbuf; token lexbuf }
-| "var" {KEYVAR}
-| "halt" { NOTHING }
-| "yield" {PAUSE}  
-| "loop" {LOOP}
-| "signal" {SIGNAL}
-| "emit" {EMIT}
-| "await" {AWAIT}
-| "async" {ASYNC}
-| "assert" {ASSERT}
-| "when" {WHEN}
-| "present" {PRESENT}
-| "run" {RUN}
-| "trap" {TRAP}
-| "exit" {EXIT}
-| "emp" { EMPTY }
-| "require" {REQUIRE}
-| "ensure" {ENSURE}
-| "module" {MODULE}
-| "hiphop" {HIPHOP}
-| "inout" {INOUT}
-| "out" {OUT}
-| "end" {END}
-| "in" {IN}
-| "then" {THEN}
-| "else" {ELSE}
-| "TRUE" { TRUEToken }
-| "FALSE" { FALSEToken }
-| "true" { TRUEE (bool_of_string (Lexing.lexeme lexbuf))}
-| "false" { FALSEE (bool_of_string (Lexing.lexeme lexbuf))}
-| "count" { COUNT }
-| "abort" {ABORT} 
-
+| newline  {(next_line lexbuf; token lexbuf) }
+| int      { INTE (int_of_string (Lexing.lexeme lexbuf)) }
+| float { FLOAT (float_of_string (Lexing.lexeme lexbuf)) }
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 | '>' {GT}
 | '<' {LT}
 | '=' {EQ}
 | "/\\" {CONJ}
-
 | ">=" {GTEQ}
 | "<=" {LTEQ}
 
@@ -76,79 +46,41 @@ rule token = parse
 | ')' { RPAR }
 | '{' { LBRACK  }
 | '}' { RBRACK }
-| ';' { SIMI }
-| int      { INTE (int_of_string (Lexing.lexeme lexbuf)) }
+| '[' { LBrackets }
+| ']' { RBrackets }
 | '.' { CONCAT }
-| "||" { PAR }
-| 'X' {NEXT}
-| 'U' {UNTIL}
 | id as str { VAR str }
 | "|-" {ENTIL}
 | "\\/" {DISJ}
 | '+' { PLUS }
 | '-' { MINUS }
 | '~' {NEGATION}
-| '[' { LBrackets }
-| ']' { RBrackets }
-| '#' { SHARP }
 | ',' { COMMA }
-
-| '^' { POWER }
-| '*' {KLEENE}
-
-| "<>" {FUTURE}  
-
-| "->" {IMPLY}
-| '!' {LTLNOT}
-| '?' {QUESTION}
 | ':' { COLON }
-| "&&" {LILAND}
-| "||" {LILOR}
-
-| "/*@" {LSPEC}
-| "@*/" {RSPEC}
+| ';' { SIMI }
 | '"'      { read_string (Buffer.create 17) lexbuf }
+
 
 | eof { EOF }
 
-(*
-
-
-| 'w' {OMEGA}
-| "if" {IF}
-| "else" {ELSE}
-
-
-| "[]" {GLOBAL}
-| "include" {INCLUDE}
-| '"'      { read_string (Buffer.create 17) lexbuf }
-
-
-| '|' { CHOICE }
-
-| '"' { read_string (Buffer.create 17) lexbuf }
-
-| '[' { LBrackets }
-| ']' { RBrackets }
-| '{' { LBRACK  }
-| '}' { RBRACK }
-
-
-
-
-
-
-
-
-
-
-*)
 | _ { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 
 
+and read_single_line_comment = parse
+  | newline { next_line lexbuf; token lexbuf }
+  | eof { EOF }
+  | _ { read_single_line_comment lexbuf }
+  
+and read_multi_line_comment = parse
+  | "-}" { token lexbuf }
+  | newline { next_line lexbuf; read_multi_line_comment lexbuf }
+  | eof { raise (SyntaxError ("Lexer - Unexpected EOF - please terminate your comment.")) }
+  | _ { read_multi_line_comment lexbuf }
+
+
 (* part 5   *)
-and read_string buf =
-  parse
+
+and read_string buf = parse
   | '"'       { STRING (Buffer.contents buf) }
   | '\\' '/'  { Buffer.add_char buf '/'; read_string buf lexbuf }
   | '\\' '\\' { Buffer.add_char buf '\\'; read_string buf lexbuf }
@@ -165,3 +97,49 @@ and read_string buf =
   | eof { raise (SyntaxError ("String is not terminated")) }
 
 
+
+(*
+
+| "/*@" {LSPEC}
+| "@*/" {RSPEC}
+
+| '?' {QUESTION}
+| '#' { SHARP }
+
+
+| "||" { PAR }
+| "require" {REQUIRE}
+| "ensure" {ENSURE}
+
+| "hiphop" {HIPHOP}
+| "inout" {INOUT}
+| "out" {OUT}
+| "end" {END}
+| "in" {IN}
+
+| "when" {WHEN}
+
+| "count" { COUNT }
+| "abort" {ABORT} 
+| "halt" { NOTHING }
+| "yield" {PAUSE}  
+| "loop" {LOOP}
+| "signal" {SIGNAL}
+| "emit" {EMIT}
+| "await" {AWAIT}
+| "async" {ASYNC}
+
+| "assert" {ASSERT}
+
+| "present" {PRESENT}
+| "run" {RUN}
+| "trap" {TRAP}
+| "exit" {EXIT}
+| "emp" { EMPTY }
+
+| "else" {ELSE}
+| "[]" {GLOBAL}
+| "include" {INCLUDE}
+| '"' { read_string (Buffer.create 17) lexbuf }
+
+*)
