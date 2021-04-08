@@ -83,6 +83,7 @@ type prog = Halt
 
 type statement = 
         | ImportStatement of string
+        | ExportStatement of string *  string 
         | VarDeclaration of string * prog
         | ModuleDeclaration of (pattern list) * prog
 
