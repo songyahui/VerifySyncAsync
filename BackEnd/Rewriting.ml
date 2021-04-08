@@ -123,6 +123,31 @@ let rec getVarFromTerms (t:terms): string list =
   | Minus (t1, t2) -> List.append (getVarFromTerms t1) (getVarFromTerms t2)
   ;;
 
+let rec containTerm (term1:terms) (term2:terms) : bool = 
+  match (term2) with 
+  | Plus (t1, t2) -> stricTcompareTerm term1 t1 || containTerm term1 t2
+  | Minus (t1, t2) -> stricTcompareTerm term1 t1 || containTerm term1 t2
+  | _ -> stricTcompareTerm term1 term2
+  ;;
+
+let rec getReleventC p t : pure = 
+  print_string(string_of_pure p^"\n");
+  print_string(string_of_terms t^"\n");
+  match p with 
+    Eq (t1, t2) -> if containTerm t t1 || containTerm t t2 then p else TRUE
+  | PureOr (p1, p2) -> PureOr (getReleventC p1 t , getReleventC p2 t )
+  | PureAnd (p1, p2) -> PureAnd (getReleventC p1 t , getReleventC p2 t )
+  | Gt (t1, t2) -> if containTerm t t1 || containTerm t t2 then p else TRUE
+  | Lt (t1, t2) -> if containTerm t t1 || containTerm t t2 then p else TRUE
+  | GtEq (t1, t2) -> if containTerm t t1 || containTerm t t2 then p else TRUE
+  | LtEq (t1, t2) -> if containTerm t t1 || containTerm t t2 then p else TRUE
+  | TRUE -> TRUE
+  | FALSE -> TRUE
+  | Neg p1 -> Neg (getReleventC p1 t)
+
+
+;;
+
 let rec getPureForTerms (fst_terms:terms) (fst_pure: pure) : pure = 
   (*let var_List = getVarFromTerms fst_terms in 
   let rec helper pi acc = 
@@ -168,16 +193,83 @@ let reoccur (evn: inclusion list) (lhs:effect) (rhs:effect): bool =
   in aux evn
   ;;
 
-let rec derivative (pi :pure) (es:es) (fst:fst) : effect = 
+let rec allVarsFromTerm (t:terms): string list =
+  match t with
+    Var name -> [name]
+  | Number n -> []
+  | Plus (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2)
+  | Minus (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2)
+
+  ;;
+
+let rec allVarsFromPure p : string list = 
+  match p with 
+  | TRUE -> []  
+  | FALSE -> []
+  | Gt (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2) 
+  | Lt (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2) 
+  | GtEq (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2) 
+  | LtEq (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2) 
+  | Eq (t1, t2) -> List.append (allVarsFromTerm t1) (allVarsFromTerm t2) 
+  | PureOr (p1, p2) -> List.append (allVarsFromPure p1) (allVarsFromPure p2) 
+  | PureAnd (p1, p2) -> List.append (allVarsFromPure p1) (allVarsFromPure p2) 
+  | Neg (p1) -> (allVarsFromPure p1) 
+  ;;
+
+let rec oneOfVar str big : bool =
+  match big with 
+  | [] -> false 
+  | x::xs -> if String.compare x str == 0 then true else oneOfVar str xs
+  ;;
+
+let rec existCommon small big : bool =
+  match small with 
+  | [] -> false 
+  | x::xs -> if oneOfVar x big then true else existCommon xs big 
+  ;;
+
+let getRelavantConstrain (unify:pure) (pi:pure) : pure = 
+  let var_Li = allVarsFromPure unify in
+  let rec aux p:pure = 
+    match p with 
+    | TRUE -> p 
+    | FALSE -> p
+    | Gt (t1, t2) -> 
+      let v1 = allVarsFromTerm t1 in 
+      let v2 = allVarsFromTerm t2 in 
+      if existCommon (List.append v1 v2) var_Li then p else TRUE
+    | Lt (t1, t2) -> 
+      let v1 = allVarsFromTerm t1 in 
+      let v2 = allVarsFromTerm t2 in 
+      if existCommon (List.append v1 v2) var_Li then p else TRUE
+    | GtEq (t1, t2) -> 
+      let v1 = allVarsFromTerm t1 in 
+      let v2 = allVarsFromTerm t2 in 
+      if existCommon (List.append v1 v2) var_Li then p else TRUE
+    | LtEq (t1, t2) -> 
+      let v1 = allVarsFromTerm t1 in 
+      let v2 = allVarsFromTerm t2 in 
+      if existCommon (List.append v1 v2) var_Li then p else TRUE
+    | Eq (t1, t2) -> 
+      let v1 = allVarsFromTerm t1 in 
+      let v2 = allVarsFromTerm t2 in 
+      if existCommon (List.append v1 v2) var_Li then p else TRUE
+    | PureOr (p1, p2) -> PureOr (aux p1, aux p2)
+    | PureAnd (p1, p2) -> PureAnd (aux p1, aux p2)
+    | Neg (p1) -> Neg (aux p1)
+  in aux pi
+  ;;
+
+let rec derivative (pi :pure) (es:es) (fst:fst) (unify:pure): (pure * effect) = 
   let (fst_ins, fst_terms, fst_pure) = fst in 
   match es with
-    Bot ->  []
-  | Emp ->  []
+    Bot ->  (unify, [])
+  | Emp ->  (unify, [])
   | Wait _ -> (raise (Foo "derivative: there is an unhandled wait"))
   | Instance ins ->  
 
-          if instansEntails fst_ins ins then [(pi, Emp)] 
-          else []
+          if instansEntails fst_ins ins then (unify, [(pi, Emp)] )
+          else (unify, [])
       
 
   (*| Ttimes (es1, t) -> 
@@ -187,50 +279,49 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
       appendEff_ES efF esT_minus1*)
   | Cons (es1 , es2) ->  
       if nullable es1 
-      then let efF = derivative pi es1 fst in 
+      then let (u1, efF) = derivative pi es1 fst unify in 
           let effL =  (appendEff_ES efF es2) in 
-          let effR =  (derivative pi es2 fst) in 
-          disjEffects (List.append effL effR)
-      else let efF = derivative pi es1 fst in 
-          appendEff_ES efF es2    
+          let (u2, effR) =  (derivative pi es2 fst unify) in 
+          (PureAnd(u1, u2), disjEffects (List.append effL effR))
+      else let (u1, efF) = derivative pi es1 fst unify in 
+          (u1, appendEff_ES efF es2 )   
   | Choice (es1, es2) -> 
-      let temp1 =  (derivative pi es1 fst) in
-      let temp2 =  (derivative pi es2 fst) in 
-      disjEffects (List.append temp1 temp2)
+      let (u1, temp1) =  (derivative pi es1 fst unify) in
+      let (u2, temp2) =  (derivative pi es2 fst unify) in 
+      (PureAnd(u1, u2), disjEffects (List.append temp1 temp2))
   | RealTime (Instance insR, rt) -> 
       if instansEntails fst_ins insR 
       then 
-        let pure_plus = Eq (rt, Var fst_terms) in 
-        (*print_string ("\n********************\n");
-        print_string (string_of_pure (PureAnd (pure1, pure_plus)));
-        print_string ("\n==>\n");
-        print_string (string_of_pure pure2 ^"\n");
-        print_string (string_of_bool (entailConstrains1 (PureAnd (pure1, pure_plus)) pure2 )^"\n");
-        *)
-        let eqs = getEqFromPure pi in 
-        if entailConstrains1 (PureAnd(eqs, PureAnd (fst_pure, pure_plus))) pi then 
-        [(PureAnd (pi, pure_plus), Emp)] 
-        else (print_string (string_of_pure (PureAnd(eqs, PureAnd (fst_pure, pure_plus))) ^ " => " ^ string_of_pure pi ^" \n ");  [])
-      else []
+        let new_unify = PureAnd(unify, Eq (rt, Var fst_terms)) in 
+        let left = normalPure (PureAnd (new_unify, fst_pure)) in 
+        let right = normalPure (getRelavantConstrain new_unify pi) in 
+        print_string (string_of_pure left ^" ==> "^ string_of_pure right ^ "\n");
+        print_string (string_of_bool (entailConstrains1 left right)^"\n");
+        if entailConstrains left right then 
+        (new_unify, [(pi, Emp)])
+        else (new_unify, [])
+      else (unify, [])
 
     
   | RealTime (es1, rt) -> 
-    let ele_list = normalEffect (derivative pi es1 fst) in
-    List.fold_left (fun acc (pi_temp, es_temp)-> 
+    let (unify_temp, effect_temp) = derivative pi es1 fst unify in 
+    let ele_list = normalEffect effect_temp in
+    let sssyyyhhh = List.fold_left (fun acc (pi_temp, es_temp)-> 
       (let newT1 = getAnewVar_rewriting () in
       let newT2 = getAnewVar_rewriting () in
-      let eqs = getEqFromPure pi in 
-      let cons = PureAnd (Eq (Plus(Var newT1, Var newT2), rt), Eq(Var newT1, Var fst_terms)) in 
-      let pi_new = PureAnd ( pi_temp, cons) in 
-      if entailConstrains1 (PureAnd (pi_new, eqs)) pi then 
-      (PureAnd (pi, cons), RealTime (es_temp, Var newT2)) :: acc
-      else acc
-    )) [] ele_list
+      let new_unify = PureAnd (Eq (Plus(Var newT1, Var newT2), rt), Eq(Var newT1, Var fst_terms)) in 
+     
+      (new_unify, (pi_temp, RealTime (es_temp, Var newT2))) :: acc
+      (*else acc*)
+    )) [] ele_list in 
+    List.fold_left (fun (acc_u, acc_e) (u, e) -> (PureAnd(acc_u, u), e::acc_e)) (unify_temp, []) sssyyyhhh
     
     
 
 
-  | Kleene es1 -> appendEff_ES  (derivative pi es1 fst) es
+  | Kleene es1 -> 
+    let (new_unify, new_eff) = derivative pi es1 fst unify in 
+    (new_unify, appendEff_ES  (new_eff) es)
  (*
   | Par (es1 , es2) -> 
     (match fst with 
@@ -254,64 +345,69 @@ let rec derivative (pi :pure) (es:es) (fst:fst) : effect =
     )
  *)
   | Par (es1, es2) -> 
-    let ele_list1 = derivative pi es1 fst in 
-    let ele_list2 = derivative pi es2 fst in 
+    let (u1, ele_list1) = derivative pi es1 fst unify in 
+    let (u2, ele_list2) = derivative pi es2 fst unify in 
     let eles = zip (ele_list1, ele_list2) in 
-    List.map (fun ((pp1, ees1), (pp2, ees2) ) -> 
+    (PureAnd (u1, u2)
+      ,List.map (fun ((pp1, ees1), (pp2, ees2) ) -> 
     (PureAnd (pp1, pp2), Par (ees1, ees2 ))
     ) eles
+    )
 
 ;;
 
-
-let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * binary_tree *  inclusion list) = 
+                                                                (* unification *)
+let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) (unify:pure) : (pure * bool * binary_tree *  inclusion list) = 
   
   let normalFormL = normalEffect lhs in 
   let normalFormR = normalEffect rhs in 
   let showEntail = string_of_inclusion normalFormL normalFormR in 
 
-  let rec checkDerivative eff (fst:fst) : effect = 
+  let rec checkDerivative eff (fst:fst) : (pure* effect) = 
     
-     List.fold_left (fun acc (pi, es) -> List.append (derivative pi es fst) acc) []  eff 
-    (*| Disj (eff1, eff2) -> Disj (checkDerivative eff1 fst, checkDerivative eff2 fst) *)
+    List.fold_left (fun (u_acc, e_acc) (pi, es) -> 
+      let (new_unify, der) = derivative pi es fst unify in 
+      (PureAnd(u_acc, new_unify) , List.append (der) e_acc)
+      ) (unify, [])  eff 
+   
   in 
 
   let unfold eff1 eff2 del = 
     let fstL = checkFst eff1 in 
     let deltaNew = List.append [(eff1, eff2)] del  in
 
-    let rec chceckResultAND li acc hypoacc:(bool * binary_tree list * inclusion list)=
+    let rec chceckResultAND li acc hypoacc:(pure* bool * binary_tree list * inclusion list)=
       (match li with 
-        [] -> (true, acc, hypoacc ) 
+        [] -> (unify, true, acc, hypoacc ) 
       | ev::fs -> 
           
-          let deriL = checkDerivative eff1 ev in
+          let (unify_left, deriL) = checkDerivative eff1 ev in
           
-          let deriR = checkDerivative eff2 ev in
-          let (re,tree,  hypo) =  containment hypoacc deriL deriR in 
-          if re == false then (false , tree::acc, [])
+          let (unify_right, deriR) = checkDerivative eff2 ev in
+          let (new_unify, re,tree,  hypo) =  containment hypoacc deriL deriR (PureAnd(unify_left, unify_right)) in 
+          if re == false then (new_unify, false , tree::acc, [])
           else chceckResultAND fs (tree::acc) hypo
       )
     in 
-    let (resultFinal, trees, hypy ) = chceckResultAND fstL [] deltaNew in 
-    (resultFinal, Node (showEntail ^ "   [UNFOLD]",trees ), hypy)    
+    let (unify_final, resultFinal, trees, hypy ) = chceckResultAND fstL [] deltaNew in 
+    (unify_final, resultFinal, Node (showEntail ^ "   [UNFOLD]",trees ), hypy)    
   in
   
   
   match (normalFormL, normalFormR) with 
       (*this means the assertion or precondition is already fail*)
-    ([], _) -> (true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
-  | (_, []) -> (false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
+    ([], _) -> (unify, true,  Node(showEntail ^ "   [Bot-LHS]", []), evn)  
+  | (_, []) -> (unify, false, Node(showEntail ^ "   [DISPROVE]", []),  evn)  
   | _ ->
 
   if ((nullableEffect normalFormL == true) && (nullableEffect normalFormR == false ))  then 
-      (false, Node (showEntail ^ "   [NULLABLE]", []), evn)  
+      (unify, false, Node (showEntail ^ "   [NULLABLE]", []), evn)  
   else if reoccur evn normalFormL normalFormR then
       (
       (*
       print_string (List.fold_left (fun acc (a1, a2) -> acc ^ string_of_inclusion a1 a2) "" evn);
       *)
-      (true, Node (showEntail ^ "   [REOCCUR]", []), evn)  
+      (unify, true, Node (showEntail ^ "   [REOCCUR]", []), evn)  
       )
   else 
   
@@ -322,19 +418,19 @@ let rec containment (evn: inclusion list) (lhs:effect) (rhs:effect) : (bool * bi
 
 (* no mixed usage of t and || *)
 
-let check_containment lhs rhs : (bool * binary_tree *  inclusion list) = 
+let check_containment lhs rhs : (pure*bool * binary_tree *  inclusion list) = 
   (*
   let lhs' = matchAsyncAwaitEffect lhs in 
   let rhs' = matchAsyncAwaitEffect rhs in 
   *)
-  containment [] lhs rhs
+  containment [] lhs rhs TRUE
   ;;
 
 let printReport (lhs:effect) (rhs:effect) (expectation:bool):(string* bool) =
 
   let entailment = string_of_inclusion (normalEffect lhs) (normalEffect rhs) in 
   let startTimeStamp = Sys.time() in
-  let (re, tree, hypos) =  check_containment lhs rhs in
+  let (_, re, tree, hypos) =  check_containment lhs rhs in
   let verification_time = "[Verification Time: " ^ string_of_float (Sys.time() -. startTimeStamp) ^ " s]\n" in
   let result = printTree ~line_prefix:"* " ~get_name ~get_children tree in
   let correct = if (expectation ==re) then "[Correct]" else "[Incorrect]" in 

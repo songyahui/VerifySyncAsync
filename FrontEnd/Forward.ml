@@ -439,7 +439,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
   | Assert eff -> 
 
-      let (re, _, _) = check_containment (List.map (fun (pi, his, cur, k) -> (pi, Cons(his, Instance cur))) current) eff in 
+      let (_, re, _, _) = check_containment (List.map (fun (pi, his, cur, k) -> (pi, Cons(his, Instance cur))) current) eff in 
       if re then current 
       else raise (Foo "assertion failed")
    
@@ -486,7 +486,7 @@ let rec forward (env: string list) (current:prog_states) (prog:prog) (full: spec
 
     List.append acc (  
       let (fun_name, inp, outp, precon, postcon, _) = findProg mn full in 
-      let (re, _, _) = check_containment [(pi, Cons (his, Instance cur))] precon in 
+      let (_, re, _, _) = check_containment [(pi, Cons (his, Instance cur))] precon in 
       
       
       List.map (fun (pi1, es1) -> 
